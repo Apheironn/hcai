@@ -8,108 +8,189 @@
 
 {% block content %}
 <div class="box project1">
-    <h1>Project 1 — Supervised Learning</h1>
+    <header class="page-header">
+        <h1>Project 1 — Supervised Learning</h1>
+        <p class="subtitle">Upload data, explore features, and compare models.</p>
+    </header>
 
     {% if error %}
     <p class="error">{{ error }}</p>
     {% endif %}
 
-    <section>
+    <section class="card">
         <h2>1. Upload dataset</h2>
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" class="form-grid">
             {% csrf_token %}
             <input type="hidden" name="action" value="upload">
-            {{ upload_form.file }}
+            <div class="field">
+                <label for="csv-file">CSV file</label>
+                {{ upload_form.file }}
+            </div>
             <button type="submit">Upload</button>
         </form>
     </section>
 
     {% if dataset %}
-    <section>
+    <section class="card">
         <h2>Dataset summary</h2>
-        <p><strong>Rows:</strong> {{ dataset.n_rows }}</p>
-        <p><strong>Target:</strong> {{ dataset.target_name }}</p>
-        <p><strong>Features:</strong> {{ dataset.features|join:", " }}</p>
-        <p><strong>Problem type:</strong> {{ dataset.problem_type }}</p>
+        <div class="summary-grid">
+            <div class="stat"><span>Rows</span><strong>{{ dataset.n_rows }}</strong></div>
+            <div class="stat"><span>Target</span><strong>{{ dataset.target_name }}</strong></div>
+            <div class="stat"><span>Problem</span><strong>{{ dataset.problem_type }}</strong></div>
+        </div>
+        <p class="feature-list"><strong>Features:</strong> {{ dataset.features|join:", " }}</p>
         <h3>Preview</h3>
-        {{ preview_html|safe }}
+        <div class="table-wrap">{{ preview_html|safe }}</div>
     </section>
 
-    <section>
+    <section class="card">
         <h2>2. Visualize</h2>
-        <form method="post">
+        <form method="post" class="form-grid">
             {% csrf_token %}
             <input type="hidden" name="action" value="plot">
-            <label>Problem type</label>
-            {{ plot_form.problem_type }}
-            <label>X feature</label>
-            <select name="x_feature" required>
-                {% for feature in dataset.features %}
-                <option value="{{ feature }}">{{ feature }}</option>
-                {% endfor %}
-            </select>
-            <label>Y feature (optional for regression)</label>
-            <select name="y_feature">
-                <option value="">—</option>
-                {% for feature in dataset.features %}
-                <option value="{{ feature }}">{{ feature }}</option>
-                {% endfor %}
-            </select>
+            <div class="field">
+                <label>Problem type</label>
+                {{ plot_form.problem_type }}
+            </div>
+            <div class="field">
+                <label>X feature</label>
+                <select name="x_feature" required>
+                    {% for feature in dataset.features %}
+                    <option value="{{ feature }}">{{ feature }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label>Y feature <span class="hint">(leave empty for 1D regression plot)</span></label>
+                <select name="y_feature">
+                    <option value="">—</option>
+                    {% for feature in dataset.features %}
+                    <option value="{{ feature }}">{{ feature }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <button type="submit">Generate plot</button>
         </form>
         {% if plot_url %}
-        <img src="{{ plot_url }}" alt="Data plot" class="plot-image">
+        <div class="plot-frame">
+            <img src="{{ plot_url }}" alt="Data plot" class="plot-image">
+        </div>
         {% endif %}
     </section>
 
-    <section>
+    <section class="card">
         <h2>3. Train model</h2>
-        <form method="post">
+        <form method="post" class="form-grid" id="train-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="train">
-            <label>Model</label>
-            <select name="model" required>
-                {% for model in model_choices %}
-                <option value="{{ model }}" {% if train_form.model.value == model %}selected{% endif %}>{{ model }}</option>
-                {% endfor %}
-            </select>
-            <label>Train size (%)</label>
-            <input type="number" name="test_size" min="10" max="90" value="{{ train_form.test_size.value|default:80 }}" required>
-            <label>Hyperparameter ({{ param_name }})</label>
-            <input type="text" name="param_values" value="{{ train_form.param_values.value|default:'' }}" placeholder="e.g. 3,5,7">
-            <label>Metric</label>
-            <select name="metric" required>
-                {% for metric in metric_choices %}
-                <option value="{{ metric }}" {% if train_form.metric.value == metric %}selected{% endif %}>{{ metric }}</option>
-                {% endfor %}
-            </select>
+            <div class="field">
+                <label for="model-select">Model</label>
+                <select name="model" id="model-select" required>
+                    {% for model in model_choices %}
+                    <option value="{{ model }}" {% if selected_model == model %}selected{% endif %}>{{ model }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="train-size">Train size (%)</label>
+                <input type="number" id="train-size" name="test_size" min="10" max="90" value="{{ train_form.test_size.value|default:80 }}" required>
+            </div>
+            <div class="field">
+                <label for="param-values">Hyperparameter (<span id="param-label">{{ param_name|default:"none" }}</span>)</label>
+                <input type="text" id="param-values" name="param_values" value="{{ selected_params }}" placeholder="e.g. 3,5,7">
+                <small id="param-hint" class="hint"></small>
+            </div>
+            <div class="field">
+                <label for="metric-select">Metric</label>
+                <select name="metric" id="metric-select" required>
+                    {% for metric in metric_choices %}
+                    <option value="{{ metric }}" {% if selected_metric == metric %}selected{% endif %}>{{ metric }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <button type="submit">Train</button>
         </form>
+
         {% if train_result %}
-        <p class="metric-note">
-            Metric: {{ train_result.metric }}
-            {% if train_result.lower_is_better %}(lower is better){% else %}(higher is better){% endif %}
-        </p>
-        <table class="results-table">
-            <thead>
-                <tr>
-                    <th>{{ train_result.param_name }}</th>
-                    <th>Train</th>
-                    <th>Test</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in train_result.results %}
-                <tr class="{% if row.best %}best-row{% endif %}">
-                    <td>{{ row.param }}</td>
-                    <td>{{ row.train_score }}</td>
-                    <td>{{ row.test_score }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="results-panel" id="results-panel">
+            <p class="results-meta">
+                <strong>{{ train_result.model }}</strong> · metric: {{ train_result.metric }}
+                {% if train_result.lower_is_better %}(lower is better){% else %}(higher is better){% endif %}
+                · train {{ train_result.train_rows }} / test {{ train_result.test_rows }} rows
+            </p>
+            {% if train_result.overfit_warning %}
+            <p class="warning">Large train–test gap detected — model may be overfitting on some settings.</p>
+            {% endif %}
+            <div class="table-wrap">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>{{ train_result.param_name }}</th>
+                            <th>Train</th>
+                            <th>Test</th>
+                            <th>Gap</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in train_result.results %}
+                        <tr class="{% if row.best %}best-row{% endif %}{% if row.overfit %} overfit-row{% endif %}">
+                            <td>{{ row.param }}</td>
+                            <td>{{ row.train_score }}</td>
+                            <td>{{ row.test_score }}</td>
+                            <td>{{ row.gap }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="hint">Gap = train − test (classification). High gap with strong train score suggests overfitting.</p>
+        </div>
         {% endif %}
     </section>
     {% endif %}
 </div>
 {% endblock %}
+
+{% block script %}
+{% if dataset %}
+<script>
+const modelConfig = {{ model_config_json|safe }};
+const modelSelect = document.getElementById("model-select");
+const paramLabel = document.getElementById("param-label");
+const paramValues = document.getElementById("param-values");
+const paramHint = document.getElementById("param-hint");
+const resultsPanel = document.getElementById("results-panel");
+const trainForm = document.getElementById("train-form");
+
+function updateParamFields() {
+    const cfg = modelConfig[modelSelect.value] || { param: "", defaults: "" };
+    paramLabel.textContent = cfg.param || "none";
+    paramValues.placeholder = cfg.defaults ? `e.g. ${cfg.defaults}` : "no hyperparameters";
+    if (!paramValues.dataset.userEdited) {
+        paramValues.value = cfg.defaults;
+    }
+    paramHint.textContent = cfg.param
+        ? `Try: ${cfg.defaults}`
+        : "This model has no hyperparameter grid.";
+    paramValues.disabled = !cfg.param;
+}
+
+if (modelSelect) {
+    paramValues.addEventListener("input", () => {
+        paramValues.dataset.userEdited = "1";
+    });
+    modelSelect.addEventListener("change", () => {
+        delete paramValues.dataset.userEdited;
+        updateParamFields();
+    });
+    updateParamFields();
+}
+
+if (trainForm && resultsPanel) {
+    trainForm.querySelectorAll("select, input").forEach((el) => {
+        el.addEventListener("change", () => resultsPanel.classList.add("stale"));
+    });
+}
+</script>
+{% endif %}
+{% endblock script %}

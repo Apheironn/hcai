@@ -7,15 +7,45 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 CLASSIFICATION_MODELS = {
-    "LogisticRegression": (LogisticRegression, "C", max),
-    "KNeighborsClassifier": (KNeighborsClassifier, "n_neighbors", max),
-    "DecisionTreeClassifier": (DecisionTreeClassifier, "max_depth", max),
+    "LogisticRegression": {
+        "class": LogisticRegression,
+        "param": "C",
+        "defaults": "0.01,0.1,1",
+        "kwargs": {"max_iter": 1000},
+    },
+    "KNeighborsClassifier": {
+        "class": KNeighborsClassifier,
+        "param": "n_neighbors",
+        "defaults": "3,5,7,15",
+        "kwargs": {},
+    },
+    "DecisionTreeClassifier": {
+        "class": DecisionTreeClassifier,
+        "param": "max_depth",
+        "defaults": "2,5,10,20",
+        "kwargs": {},
+    },
 }
 
 REGRESSION_MODELS = {
-    "LinearRegression": (LinearRegression, None, max),
-    "Ridge": (Ridge, "alpha", max),
-    "KNeighborsRegressor": (KNeighborsRegressor, "n_neighbors", max),
+    "LinearRegression": {
+        "class": LinearRegression,
+        "param": None,
+        "defaults": "",
+        "kwargs": {},
+    },
+    "Ridge": {
+        "class": Ridge,
+        "param": "alpha",
+        "defaults": "0.1,1,10",
+        "kwargs": {},
+    },
+    "KNeighborsRegressor": {
+        "class": KNeighborsRegressor,
+        "param": "n_neighbors",
+        "defaults": "3,5,7,15",
+        "kwargs": {},
+    },
 }
 
 CLASSIFICATION_METRICS = {
@@ -27,6 +57,8 @@ REGRESSION_METRICS = {
     "r2": r2_score,
     "mse": mean_squared_error,
 }
+
+OVERFIT_GAP = 0.08
 
 
 class ModelTrainer:
@@ -43,11 +75,29 @@ class ModelTrainer:
         return list(REGRESSION_METRICS.keys())
 
     @classmethod
+    def model_config(cls, problem_type):
+        registry = cls.models_for(problem_type)
+        return {
+            name: {
+                "param": cfg["param"] or "",
+                "defaults": cfg["defaults"],
+            }
+            for name, cfg in registry.items()
+        }
+
+    @classmethod
     def param_name_for(cls, model_name, problem_type):
         registry = cls.models_for(problem_type)
         if model_name not in registry:
             raise ValueError("Select a valid model.")
-        return registry[model_name][1]
+        return registry[model_name]["param"]
+
+    @classmethod
+    def default_values_for(cls, model_name, problem_type):
+        registry = cls.models_for(problem_type)
+        if model_name not in registry:
+            return ""
+        return registry[model_name]["defaults"]
 
     @classmethod
     def run(cls, dataset, model_name, test_size, param_values, metric):
@@ -63,7 +113,8 @@ class ModelTrainer:
         if metric not in metrics:
             raise ValueError("Select a valid metric.")
 
-        model_cls, param_name, best_fn = registry[model_name]
+        cfg = registry[model_name]
+        param_name = cfg["param"]
         score_fn = metrics[metric]
         lower_is_better = metric == "mse"
 
@@ -72,27 +123,36 @@ class ModelTrainer:
         if dataset.problem_type == "classification" and y.dtype == object:
             y = LabelEncoder().fit_transform(y)
 
-        x_train, x_test, y_train, y_test = train_test_split(
-            x,
-            y,
-            test_size=(100 - test_size) / 100,
-            random_state=42,
-        )
+        split_kwargs = {
+            "test_size": (100 - test_size) / 100,
+            "random_state": 42,
+        }
+        if dataset.problem_type == "classification" and len(set(y)) > 1:
+            split_kwargs["stratify"] = y
+
+        x_train, x_test, y_train, y_test = train_test_split(x, y, **split_kwargs)
 
         values = cls._parse_param_values(param_values, param_name)
         results = []
 
         for value in values:
-            kwargs = {param_name: value} if param_name else {}
-            model = model_cls(**kwargs)
+            kwargs = dict(cfg["kwargs"])
+            if param_name:
+                kwargs[param_name] = value
+            model = cfg["class"](**kwargs)
             model.fit(x_train, y_train)
-            train_score = score_fn(y_train, model.predict(x_train))
-            test_score = score_fn(y_test, model.predict(x_test))
+            train_score = float(score_fn(y_train, model.predict(x_train)))
+            test_score = float(score_fn(y_test, model.predict(x_test)))
+            gap = round(train_score - test_score, 4)
+            if lower_is_better:
+                gap = round(test_score - train_score, 4)
             results.append(
                 {
                     "param": value if param_name else "default",
-                    "train_score": round(float(train_score), 4),
-                    "test_score": round(float(test_score), 4),
+                    "train_score": round(train_score, 4),
+                    "test_score": round(test_score, 4),
+                    "gap": gap,
+                    "overfit": gap > OVERFIT_GAP,
                 }
             )
 
@@ -104,7 +164,11 @@ class ModelTrainer:
             "results": results,
             "param_name": param_name or "param",
             "metric": metric,
+            "model": model_name,
             "lower_is_better": lower_is_better,
+            "train_rows": len(y_train),
+            "test_rows": len(y_test),
+            "overfit_warning": any(row["overfit"] for row in results),
         }
 
     @staticmethod
@@ -117,6 +181,9 @@ class ModelTrainer:
         for part in raw.split(","):
             part = part.strip()
             if not part:
+                continue
+            if part.lower() == "none":
+                values.append(None)
                 continue
             try:
                 values.append(int(part) if "." not in part else float(part))

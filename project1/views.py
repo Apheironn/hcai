@@ -1,3 +1,5 @@
+import json
+
 from django.shortcuts import render
 
 from .forms import PlotForm, TrainForm, UploadForm
@@ -26,6 +28,10 @@ def index(request):
     model_choices = []
     metric_choices = []
     param_name = ""
+    model_config_json = "{}"
+    selected_model = ""
+    selected_metric = ""
+    selected_params = ""
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -85,21 +91,33 @@ def index(request):
     if dataset:
         if plot_form is None:
             plot_form = PlotForm(initial={"problem_type": dataset.problem_type})
+
         model_choices = list(ModelTrainer.models_for(dataset.problem_type).keys())
         metric_choices = ModelTrainer.metrics_for(dataset.problem_type)
+        model_config_json = json.dumps(ModelTrainer.model_config(dataset.problem_type))
+
         if train_form is None:
-            default_model = model_choices[0]
-            param_name = ModelTrainer.param_name_for(default_model, dataset.problem_type) or ""
+            selected_model = model_choices[0]
+            selected_metric = metric_choices[0]
+            selected_params = ModelTrainer.default_values_for(
+                selected_model, dataset.problem_type
+            )
+            param_name = ModelTrainer.param_name_for(selected_model, dataset.problem_type) or ""
             train_form = TrainForm(
                 initial={
-                    "model": default_model,
+                    "model": selected_model,
                     "test_size": 80,
-                    "metric": metric_choices[0],
-                    "param_values": "3,5,7" if param_name == "n_neighbors" else "0.1,1,10",
+                    "metric": selected_metric,
+                    "param_values": selected_params,
                 }
             )
         else:
-            selected_model = request.POST.get("model", model_choices[0])
+            selected_model = train_form.data.get("model", model_choices[0])
+            selected_metric = train_form.data.get("metric", metric_choices[0])
+            selected_params = train_form.data.get(
+                "param_values",
+                ModelTrainer.default_values_for(selected_model, dataset.problem_type),
+            )
             param_name = ModelTrainer.param_name_for(selected_model, dataset.problem_type) or ""
 
     return render(
@@ -116,6 +134,10 @@ def index(request):
             "model_choices": model_choices,
             "metric_choices": metric_choices,
             "param_name": param_name,
+            "model_config_json": model_config_json,
+            "selected_model": selected_model,
+            "selected_metric": selected_metric,
+            "selected_params": selected_params,
             "error": error,
         },
     )
