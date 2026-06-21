@@ -61,6 +61,55 @@
         <img src="{{ plot_url }}" alt="Data plot" class="plot-image">
         {% endif %}
     </section>
+
+    <section>
+        <h2>3. Train model</h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="train">
+            <label>Model</label>
+            <select name="model" required>
+                {% for model in model_choices %}
+                <option value="{{ model }}" {% if train_form.model.value == model %}selected{% endif %}>{{ model }}</option>
+                {% endfor %}
+            </select>
+            <label>Train size (%)</label>
+            <input type="number" name="test_size" min="10" max="90" value="{{ train_form.test_size.value|default:80 }}" required>
+            <label>Hyperparameter ({{ param_name }})</label>
+            <input type="text" name="param_values" value="{{ train_form.param_values.value|default:'' }}" placeholder="e.g. 3,5,7">
+            <label>Metric</label>
+            <select name="metric" required>
+                {% for metric in metric_choices %}
+                <option value="{{ metric }}" {% if train_form.metric.value == metric %}selected{% endif %}>{{ metric }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Train</button>
+        </form>
+        {% if train_result %}
+        <p class="metric-note">
+            Metric: {{ train_result.metric }}
+            {% if train_result.lower_is_better %}(lower is better){% else %}(higher is better){% endif %}
+        </p>
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>{{ train_result.param_name }}</th>
+                    <th>Train</th>
+                    <th>Test</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in train_result.results %}
+                <tr class="{% if row.best %}best-row{% endif %}">
+                    <td>{{ row.param }}</td>
+                    <td>{{ row.train_score }}</td>
+                    <td>{{ row.test_score }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
     {% endif %}
 </div>
 {% endblock %}

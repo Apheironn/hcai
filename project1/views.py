@@ -1,8 +1,9 @@
 from django.shortcuts import render
 
-from .forms import PlotForm, UploadForm
+from .forms import PlotForm, TrainForm, UploadForm
 from .services.dataset import Dataset
 from .services.plot import PlotBuilder
+from .services.trainer import ModelTrainer
 
 SESSION_KEY = "dataset"
 
@@ -16,10 +17,15 @@ def _load_dataset(request, problem_type="auto"):
 def index(request):
     upload_form = UploadForm()
     plot_form = None
+    train_form = None
     error = None
     dataset = None
     preview_html = None
     plot_url = None
+    train_result = None
+    model_choices = []
+    metric_choices = []
+    param_name = ""
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -52,6 +58,22 @@ def index(request):
                 except ValueError as exc:
                     error = str(exc)
 
+        elif action == "train":
+            train_form = TrainForm(request.POST)
+            if train_form.is_valid():
+                try:
+                    dataset = _load_dataset(request)
+                    train_result = ModelTrainer.run(
+                        dataset,
+                        train_form.cleaned_data["model"],
+                        train_form.cleaned_data["test_size"],
+                        train_form.cleaned_data["param_values"],
+                        train_form.cleaned_data["metric"],
+                    )
+                    preview_html = dataset.preview()
+                except ValueError as exc:
+                    error = str(exc)
+
     if dataset is None and SESSION_KEY in request.session:
         try:
             dataset = _load_dataset(request)
@@ -60,8 +82,25 @@ def index(request):
             error = str(exc)
             request.session.pop(SESSION_KEY, None)
 
-    if dataset and plot_form is None:
-        plot_form = PlotForm(initial={"problem_type": dataset.problem_type})
+    if dataset:
+        if plot_form is None:
+            plot_form = PlotForm(initial={"problem_type": dataset.problem_type})
+        model_choices = list(ModelTrainer.models_for(dataset.problem_type).keys())
+        metric_choices = ModelTrainer.metrics_for(dataset.problem_type)
+        if train_form is None:
+            default_model = model_choices[0]
+            param_name = ModelTrainer.param_name_for(default_model, dataset.problem_type) or ""
+            train_form = TrainForm(
+                initial={
+                    "model": default_model,
+                    "test_size": 80,
+                    "metric": metric_choices[0],
+                    "param_values": "3,5,7" if param_name == "n_neighbors" else "0.1,1,10",
+                }
+            )
+        else:
+            selected_model = request.POST.get("model", model_choices[0])
+            param_name = ModelTrainer.param_name_for(selected_model, dataset.problem_type) or ""
 
     return render(
         request,
@@ -69,9 +108,14 @@ def index(request):
         {
             "upload_form": upload_form,
             "plot_form": plot_form,
+            "train_form": train_form,
             "dataset": dataset,
             "preview_html": preview_html,
             "plot_url": plot_url,
+            "train_result": train_result,
+            "model_choices": model_choices,
+            "metric_choices": metric_choices,
+            "param_name": param_name,
             "error": error,
         },
     )
