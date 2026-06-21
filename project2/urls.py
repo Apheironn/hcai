@@ -6,4 +6,5 @@ app_name = "project2"
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("select/", views.select_model, name="select"),
 ]

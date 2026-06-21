@@ -12,5 +12,248 @@
         <h1>Project 2 — Explainability</h1>
         <p class="subtitle">Palmer Penguins interpretability, counterfactuals, and feature effects.</p>
     </header>
+
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <section class="card controls-card">
+        <h2>Model controls</h2>
+        <div class="controls-row">
+            <div class="model-toggle">
+                <label><input type="radio" name="model_type_ui" value="tree" {% if model_type == "tree" %}checked{% endif %}> Tree</label>
+                <label><input type="radio" name="model_type_ui" value="logreg" {% if model_type == "logreg" %}checked{% endif %}> Logistic Regression</label>
+            </div>
+            <div class="slider-field">
+                <label for="lambda-slider">λ = <span id="lambda-value">{{ lambda_value }}</span></label>
+                <input type="range" id="lambda-slider" min="0" max="0.05" step="0.001" value="{{ lambda_value }}">
+            </div>
+        </div>
+        <div class="summary-grid">
+            <div class="stat"><span>Test acc</span><strong id="stat-acc">{{ selected.test_accuracy }}</strong></div>
+            <div class="stat"><span>Ω</span><strong id="stat-omega">{{ selected.complexity }}</strong></div>
+            <div class="stat"><span>Score</span><strong id="stat-score">{{ score }}</strong></div>
+            <div class="stat"><span>Param</span><strong id="stat-param">{{ param_text }}</strong></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>1. Dataset preview</h2>
+        <div class="summary-grid">
+            <div class="stat"><span>Rows</span><strong>{{ dataset.n_rows }}</strong></div>
+            <div class="stat"><span>Features</span><strong>{{ dataset.n_features }}</strong></div>
+            <div class="stat"><span>Classes</span><strong>{{ class_names|length }}</strong></div>
+        </div>
+        <div class="plot-frame">
+            <img src="{{ class_chart_url }}" alt="Class distribution" class="plot-image">
+        </div>
+        <h3>Preview</h3>
+        <div class="table-wrap">{{ preview_html|safe }}</div>
+    </section>
+
+    <section class="card">
+        <h2>2. Model visualization</h2>
+        <div class="plot-frame plot-wide">
+            <img src="{{ plot_url }}" alt="Model visualization" class="plot-image" id="model-plot">
+        </div>
+        <div class="table-wrap">
+            <table class="results-table" id="candidate-table">
+                <thead>
+                    <tr>
+                        <th>Param</th>
+                        <th>Test acc</th>
+                        <th>Ω</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in candidate_rows %}
+                    <tr data-id="{{ row.id }}" class="{% if row.selected %}best-row{% endif %}">
+                        <td>{{ row.param_label }}={{ row.param_value }}</td>
+                        <td>{{ row.test_accuracy }}</td>
+                        <td>{{ row.complexity }}</td>
+                        <td class="score-cell">{{ row.score }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>3. Counterfactuals</h2>
+        <form method="post" class="form-grid linked-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="counterfactual">
+            <input type="hidden" name="model_type" id="cf-model-type" value="{{ model_type }}">
+            <input type="hidden" name="lambda_value" id="cf-lambda" value="{{ lambda_value }}">
+            <div class="field">
+                <label>Example</label>
+                <select name="row_index" required>
+                    {% for idx, label in row_choices %}
+                    <option value="{{ idx }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label>Target species</label>
+                <select name="target_class" required>
+                    {% for name in class_names %}
+                    <option value="{{ name }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit">Generate</button>
+        </form>
+
+        {% if counterfactual_results %}
+        {% for cf in counterfactual_results %}
+        <div class="cf-block">
+            <p class="results-meta">
+                Distance: <strong>{{ cf.distance }}</strong> · Predicted: <strong>{{ cf.predicted }}</strong>
+            </p>
+            <div class="table-wrap">
+                <table class="results-table cf-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Original</th>
+                            <th>Counterfactual</th>
+                            <th>Δ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in cf.rows %}
+                        <tr>
+                            <td>{{ row.feature }}</td>
+                            <td>{{ row.original }}</td>
+                            <td class="{% if row.changed %}cf-changed{% endif %}">{{ row.counterfactual }}</td>
+                            <td>{{ row.delta }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>4. Feature effect plots</h2>
+        <form method="post" class="form-grid linked-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="effects">
+            <input type="hidden" name="model_type" id="fx-model-type" value="{{ model_type }}">
+            <input type="hidden" name="lambda_value" id="fx-lambda" value="{{ lambda_value }}">
+            <div class="field">
+                <label>Numeric feature</label>
+                <select name="feature" required>
+                    {% for feature in numeric_features %}
+                    <option value="{{ feature }}">{{ feature }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit">Generate</button>
+        </form>
+        {% if effect_plot_url %}
+        <div class="plot-frame plot-wide">
+            <img src="{{ effect_plot_url }}" alt="PDP and ALE plots" class="plot-image">
+        </div>
+        <p class="hint">{{ effect_note }}</p>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}
+
+{% block script %}
+<script>
+const selectUrl = "{% url 'project2:select' %}";
+let candidates = {{ candidates_json|safe }};
+let modelType = "{{ model_type }}";
+let lambdaValue = {{ lambda_value }};
+
+const lambdaSlider = document.getElementById("lambda-slider");
+const lambdaLabel = document.getElementById("lambda-value");
+const statAcc = document.getElementById("stat-acc");
+const statOmega = document.getElementById("stat-omega");
+const statScore = document.getElementById("stat-score");
+const statParam = document.getElementById("stat-param");
+const modelPlot = document.getElementById("model-plot");
+const candidateTable = document.getElementById("candidate-table");
+const modelRadios = document.querySelectorAll('input[name="model_type_ui"]');
+
+function syncHiddenFields() {
+    ["cf-model-type", "fx-model-type"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = modelType;
+    });
+    ["cf-lambda", "fx-lambda"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = lambdaValue;
+    });
+}
+
+function updateTableScores() {
+    let bestId = null;
+    let bestScore = -Infinity;
+    candidates.forEach((row) => {
+        row.score = +(row.test_accuracy - lambdaValue * row.complexity).toFixed(4);
+        if (row.score > bestScore) {
+            bestScore = row.score;
+            bestId = row.id;
+        }
+        row.selected = false;
+    });
+    candidates.forEach((row) => {
+        row.selected = row.id === bestId;
+    });
+
+    candidateTable.querySelectorAll("tbody tr").forEach((tr) => {
+        const id = Number(tr.dataset.id);
+        const row = candidates.find((item) => item.id === id);
+        if (!row) return;
+        tr.querySelector(".score-cell").textContent = row.score;
+        tr.classList.toggle("best-row", row.selected);
+    });
+}
+
+async function refreshSelection() {
+    syncHiddenFields();
+    updateTableScores();
+    const response = await fetch(`${selectUrl}?model_type=${modelType}&lambda=${lambdaValue}`);
+    const data = await response.json();
+    if (!response.ok) return;
+
+    statAcc.textContent = data.accuracy;
+    statOmega.textContent = data.complexity;
+    statScore.textContent = data.score;
+    statParam.textContent = data.param;
+    modelPlot.src = data.plot_url;
+    candidates = data.candidates;
+    candidateTable.querySelectorAll("tbody tr").forEach((tr) => {
+        const id = Number(tr.dataset.id);
+        const row = candidates.find((item) => item.id === id);
+        if (!row) return;
+        tr.querySelector(".score-cell").textContent = row.score;
+        tr.classList.toggle("best-row", row.selected);
+    });
+}
+
+lambdaSlider.addEventListener("input", () => {
+    lambdaValue = Number(lambdaSlider.value);
+    lambdaLabel.textContent = lambdaValue.toFixed(3);
+    refreshSelection();
+});
+
+modelRadios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+        if (!radio.checked) return;
+        modelType = radio.value;
+        refreshSelection();
+    });
+});
+
+syncHiddenFields();
+</script>
+{% endblock script %}
