@@ -1,0 +1,95 @@
+.project1 {
+    grid-template-rows: auto;
+    padding: 24px 5%;
+    gap: 16px;
+}
+
+.project1 section {
+    margin-bottom: 24px;
+}
+
+.project1 h2 {
+    margin-bottom: 12px;
+    color: #275CB2;
+}
+
+.project1 label {
+    display: block;
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.project1 select,
+.project1 input[type="number"],
+.project1 input[type="text"],
+.project1 input[type="file"] {
+    width: 100%;
+    max-width: 420px;
+    padding: 8px;
+    margin-top: 4px;
+}
+
+.project1 button {
+    margin-top: 14px;
+    width: auto;
+    min-width: 140px;
+    padding: 0 20px;
+}
+
+.error {
+    color: #b00020;
+    font-weight: 600;
+}
+
+.plot-image {
+    display: block;
+    max-width: 100%;
+    margin-top: 16px;
+    border: 1px solid #ddd;
+}
+
+.data-preview {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.data-preview th,
+.data-preview td {
+    border: 1px solid #ddd;
+    padding: 6px 8px;
+}
+
+.data-preview th {
+    background: #f0f4fa;
+}
+
+.results-table {
+    width: 100%;
+    max-width: 480px;
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+.results-table th,
+.results-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.results-table th {
+    background: #275CB2;
+    color: white;
+}
+
+.best-row {
+    background: #e8f5e9;
+    font-weight: 600;
+}
+
+.metric-note {
+    margin-top: 12px;
+    font-style: italic;
+}
