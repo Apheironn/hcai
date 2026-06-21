@@ -7,8 +7,33 @@
 {% endblock %}
 
 {% block content %}
-<div class="box">
+<div class="box project1">
     <h1>Project 1 — Supervised Learning</h1>
-    <p>Upload a CSV dataset to visualize and train models.</p>
+
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <section>
+        <h2>1. Upload dataset</h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload">
+            {{ upload_form.file }}
+            <button type="submit">Upload</button>
+        </form>
+    </section>
+
+    {% if dataset %}
+    <section>
+        <h2>Dataset summary</h2>
+        <p><strong>Rows:</strong> {{ dataset.n_rows }}</p>
+        <p><strong>Target:</strong> {{ dataset.target_name }}</p>
+        <p><strong>Features:</strong> {{ dataset.features|join:", " }}</p>
+        <p><strong>Problem type:</strong> {{ dataset.problem_type }}</p>
+        <h3>Preview</h3>
+        {{ preview_html|safe }}
+    </section>
+    {% endif %}
 </div>
 {% endblock %}
