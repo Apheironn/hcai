@@ -1,0 +1,23 @@
+.project2 {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: min(960px, 94%);
+    margin: 24px auto 40px;
+    padding: 28px 32px 36px;
+    grid-template-rows: auto;
+    box-shadow: 0 8px 28px rgba(20, 50, 100, 0.12);
+}
+
+.page-header h1 {
+    margin: 0 0 6px;
+    color: #1a4480;
+    font-size: 1.75rem;
+}
+
+.subtitle {
+    margin: 0;
+    color: #5a6b7d;
+    font-size: 0.98rem;
+}

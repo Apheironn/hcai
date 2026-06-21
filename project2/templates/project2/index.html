@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project2/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="box project2">
+    <header class="page-header">
+        <h1>Project 2 — Explainability</h1>
+        <p class="subtitle">Palmer Penguins interpretability, counterfactuals, and feature effects.</p>
+    </header>
+</div>
+{% endblock %}
