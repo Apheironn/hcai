@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project1/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="box">
+    <h1>Project 1 — Supervised Learning</h1>
+    <p>Upload a CSV dataset to visualize and train models.</p>
+</div>
+{% endblock %}
