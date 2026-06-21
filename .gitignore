@@ -62,6 +62,7 @@ db.sqlite3
 db.sqlite3-journal
 media/uploads/
 media/plots/
+media/model_cache/
 
 # Flask stuff:
 instance/

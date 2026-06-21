@@ -71,8 +71,6 @@ class EffectPlots:
 
     @classmethod
     def _ale_logreg(cls, model, x_train, feature_idx, grid):
-        coef = model.coef_[:, feature_idx]
-        intercept = model.intercept_
         values = x_train[:, feature_idx]
         order = np.argsort(values)
         sorted_vals = values[order]
