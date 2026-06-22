@@ -4,9 +4,10 @@ from django.test import TestCase
 
 
 class Project3Tests(TestCase):
+    @patch("project3.views.ResultPlots.class_distribution", return_value="/media/plots/test.png")
     @patch("project3.views.ModelStore.ensure")
     @patch("project3.views.AgNewsDataset.load")
-    def test_index_loads(self, mock_load, mock_ensure):
+    def test_index_loads(self, mock_load, mock_ensure, _mock_plot):
         dataset = MagicMock()
         dataset.n_train = 120000
         dataset.n_test = 7600
