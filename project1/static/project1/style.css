@@ -81,6 +81,11 @@
     border-radius: 6px;
 }
 
+.project1 .page-footer button {
+    margin-top: 0;
+    display: inline-block;
+}
+
 .hint {
     color: #64748b;
     font-size: 0.85rem;

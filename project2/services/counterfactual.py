@@ -2,6 +2,8 @@ import copy
 
 import numpy as np
 
+from .dataset import CATEGORICAL_FEATURES, NUMERIC_FEATURES
+
 
 class CounterfactualFinder:
     DEFAULT_N = 2000
@@ -61,7 +63,7 @@ class CounterfactualFinder:
                 noise = rng.normal(0, sigma * mad[col])
                 candidate_raw[col] = float(np.clip(raw[col] + noise, low, high))
 
-            for col in ["island", "sex", "year"]:
+            for col in CATEGORICAL_FEATURES:
                 if rng.random() < 0.5:
                     options = [v for v in dataset.category_values(col) if v != raw[col]]
                     if options:
@@ -87,7 +89,7 @@ class CounterfactualFinder:
     def _distance(original, candidate, mad):
         total = 0.0
         for col, weight in mad.items():
-            if col in ["island", "sex", "year"]:
+            if col in CATEGORICAL_FEATURES:
                 if original[col] != candidate[col]:
                     total += 1.0 / weight
             else:
@@ -102,7 +104,7 @@ class CounterfactualFinder:
             new = counterfactual["values"][col]
             changed = orig != new
             delta = ""
-            if col not in ["island", "sex", "year"] and changed:
+            if col not in CATEGORICAL_FEATURES and changed:
                 delta = f"{float(new) - float(orig):+.1f}"
             rows.append(
                 {

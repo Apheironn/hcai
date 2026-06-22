@@ -163,6 +163,12 @@
         <p class="hint">{{ effect_note }}</p>
         {% endif %}
     </section>
+
+    <footer class="page-footer">
+        <form action="{% url 'home:index' %}" method="get">
+            <button type="submit">Return to main page</button>
+        </form>
+    </footer>
 </div>
 {% endblock %}
 

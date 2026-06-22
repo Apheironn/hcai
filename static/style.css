@@ -125,3 +125,14 @@ button:disabled {
     margin-bottom: 1em ;
     text-indent: 22px ;
 }
+
+.page-footer {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #dbe3ef;
+  text-align: center;
+}
+
+.page-footer form {
+  display: inline-block;
+}
