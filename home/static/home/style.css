@@ -1,30 +1,123 @@
-.student-id {
-    font-family: monospace;
-    color: #555;
-}
-
-.student-list {
-    list-style: none;
-    padding: 0;
-    max-width: 500px;
-    margin: 0 auto;
-    background: #f9f9f9;
+.home-page {
+    width: min(920px, 94%);
+    margin: 32px auto 48px;
+    padding: 32px 36px 40px;
+    background: #fff;
     border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 8px 28px rgba(20, 50, 100, 0.12);
 }
 
-.student-item {
-    padding: 10px 20px;
-    border-bottom: 1px solid #ddd;
-    font-size: 16px;
+.home-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.home-header h1 {
+    margin: 0 0 8px;
+    font-size: 2rem;
+    color: #1a4480;
+    font-weight: 600;
+}
+
+.home-lead {
+    margin: 0;
+    color: #5a6b7d;
+    font-size: 1rem;
+}
+
+.project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.project-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px 22px;
+    background: #f7f9fc;
+    border: 1px solid #dde5f0;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.project-card:hover {
+    border-color: #275CB2;
+    box-shadow: 0 6px 18px rgba(39, 92, 178, 0.12);
+    transform: translateY(-2px);
+}
+
+.project-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #275CB2;
+}
+
+.project-desc {
+    font-size: 0.92rem;
+    color: #5a6b7d;
+    line-height: 1.4;
+}
+
+.empty-note {
+    color: #5a6b7d;
+    text-align: center;
+    grid-column: 1 / -1;
+}
+
+.team-card {
+    margin-top: 28px;
+    padding: 18px 20px;
+    background: #f7f9fc;
+    border: 1px solid #dde5f0;
+    border-radius: 8px;
+}
+
+.team-card h2 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+    color: #334155;
+    font-weight: 600;
+}
+
+.team-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.team-list li {
     display: flex;
     justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e8edf4;
+    font-size: 0.95rem;
 }
 
-.student-item:last-child {
+.team-list li:last-child {
     border-bottom: none;
 }
 
-.centered-text {
-    text-align: center;
+.team-name {
+    color: #1a4480;
+}
+
+.team-id {
+    font-family: ui-monospace, monospace;
+    color: #64748b;
+    font-size: 0.88rem;
+}
+
+@media (max-width: 600px) {
+    .home-page {
+        padding: 24px 20px 32px;
+    }
+
+    .team-list li {
+        flex-direction: column;
+        gap: 4px;
+    }
 }

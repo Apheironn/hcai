@@ -1,30 +1,31 @@
-# from django.http import HttpResponse
-
-
-# def index(request):
-#     return HttpResponse("Hello, world. You're at the polls index.")
-
-from django.http import HttpResponse
-from django.template import loader
+from django.shortcuts import render
 
 
 def index(request):
-    template = loader.get_template("home/index.html")
-    
-    
     students = [
         {"name": "Mertcan Catak", "matriculation": "642815"},
     ]
 
     projects = [
-        {"name": "Project 1", "url_name": "project1:index"},
-        {"name": "Project 2", "url_name": "project2:index"},
-        {"name": "Project 3", "url_name": "project3:index"},
+        {
+            "name": "Project 1",
+            "url_name": "project1:index",
+            "description": "Upload data, explore features, and train classifiers.",
+        },
+        {
+            "name": "Project 2",
+            "url_name": "project2:index",
+            "description": "Explainability, counterfactuals, and feature effects.",
+        },
+        {
+            "name": "Project 3",
+            "url_name": "project3:index",
+            "description": "Learning to defer and active expert querying.",
+        },
     ]
-    
-    context = { 
-        "students": students, 
-        "projects": projects, 
-    }
-    
-    return HttpResponse(template.render(context, request))
+
+    return render(
+        request,
+        "home/index.html",
+        {"students": students, "projects": projects},
+    )
