@@ -1,0 +1,32 @@
+.project3 {
+    position: relative;
+    width: min(960px, 94%);
+    margin: 24px auto 40px;
+    padding: 28px 32px 36px;
+    box-shadow: 0 8px 28px rgba(20, 50, 100, 0.12);
+}
+
+.page-header h1 {
+    margin: 0 0 6px;
+    color: #1a4480;
+    font-size: 1.75rem;
+}
+
+.subtitle {
+    margin: 0;
+    color: #5a6b7d;
+}
+
+.project3 .page-footer {
+    margin-top: 24px;
+    text-align: center;
+}
+
+.project3 .page-footer button {
+    background: #275CB2;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project3/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="box project3">
+    <header class="page-header">
+        <h1>Project 3 — Learning to Defer</h1>
+        <p class="subtitle">Active learning for human-AI collaboration on AG News.</p>
+    </header>
+
+    <footer class="page-footer">
+        <form action="{% url 'home:index' %}" method="get">
+            <button type="submit">Return to main page</button>
+        </form>
+    </footer>
+</div>
+{% endblock %}
