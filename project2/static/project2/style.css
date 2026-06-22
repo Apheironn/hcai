@@ -1,51 +1,3 @@
-.project2 {
-    position: relative;
-    top: auto;
-    left: auto;
-    transform: none;
-    width: min(960px, 94%);
-    margin: 24px auto 40px;
-    padding: 28px 32px 36px;
-    grid-template-rows: auto;
-    box-shadow: 0 8px 28px rgba(20, 50, 100, 0.12);
-}
-
-.page-header {
-    margin-bottom: 8px;
-}
-
-.page-header h1 {
-    margin: 0 0 6px;
-    color: #1a4480;
-    font-size: 1.75rem;
-}
-
-.subtitle {
-    margin: 0;
-    color: #5a6b7d;
-    font-size: 0.98rem;
-}
-
-.card {
-    background: #f7f9fc;
-    border: 1px solid #dde5f0;
-    border-radius: 8px;
-    padding: 18px 20px;
-    margin-top: 18px;
-}
-
-.card h2 {
-    margin: 0 0 14px;
-    color: #275CB2;
-    font-size: 1.15rem;
-}
-
-.card h3 {
-    margin: 16px 0 8px;
-    font-size: 1rem;
-    color: #334155;
-}
-
 .controls-card {
     position: sticky;
     top: 0;
@@ -246,7 +198,7 @@
 }
 
 @media (max-width: 640px) {
-    .project2 {
+    .box.project2 {
         padding: 18px 16px 28px;
     }
 }

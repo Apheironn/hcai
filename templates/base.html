@@ -6,7 +6,7 @@
         <link rel= "stylesheet" href="{% static 'style.css' %}">
         {% block extra_css %}{% endblock %}
         <link rel="shortcut icon" href="{% static 'favicon/favicon.ico' %}">
-        <title>HCAI project</title>
+        <title>{% block title %}HCAI Projects{% endblock %}</title>
         <style></style>
     </head>
     <body>

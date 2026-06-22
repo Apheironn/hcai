@@ -1,81 +1,5 @@
-.project3 {
-    position: relative;
-    width: min(960px, 94%);
-    margin: 24px auto 40px;
-    padding: 28px 32px 36px;
-    box-shadow: 0 8px 28px rgba(20, 50, 100, 0.12);
-}
-
-.page-header h1 {
-    margin: 0 0 6px;
-    color: #1a4480;
-    font-size: 1.75rem;
-}
-
-.subtitle {
-    margin: 0;
-    color: #5a6b7d;
-}
-
-.card {
-    background: #f7f9fc;
-    border: 1px solid #dde5f0;
-    border-radius: 8px;
-    padding: 18px 20px;
-    margin-top: 18px;
-}
-
-.card h2 {
-    margin: 0 0 14px;
-    color: #275CB2;
-    font-size: 1.15rem;
-}
-
-.summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.stat {
-    background: #fff;
-    border: 1px solid #dde5f0;
-    border-radius: 6px;
-    padding: 10px 12px;
-}
-
-.stat span {
-    display: block;
-    font-size: 0.8rem;
-    color: #5a6b7d;
-}
-
-.stat strong {
-    font-size: 1.1rem;
-    color: #1a4480;
-}
-
 .stat.highlight {
     max-width: 220px;
-}
-
-.hint {
-    color: #5a6b7d;
-    font-size: 0.92rem;
-}
-
-.error {
-    color: #b42318;
-    background: #fef3f2;
-    border: 1px solid #fecdca;
-    padding: 10px 12px;
-    border-radius: 6px;
-}
-
-.plot-frame {
-    margin: 12px 0;
-    text-align: center;
 }
 
 .plot-wide img {
@@ -89,35 +13,6 @@
     text-align: center;
 }
 
-.plot-image {
-    max-width: 100%;
-    border-radius: 6px;
-    border: 1px solid #dde5f0;
-}
-
-.table-wrap {
-    overflow-x: auto;
-}
-
-.results-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.92rem;
-}
-
-.results-table th,
-.results-table td {
-    border: 1px solid #dde5f0;
-    padding: 8px 10px;
-    text-align: left;
-}
-
-.results-table th {
-    background: #eef3fa;
-    color: #1a4480;
-}
-
-button,
 .download-btn {
     background: #275CB2;
     color: #fff;
@@ -128,6 +23,10 @@ button,
     text-decoration: none;
     display: inline-block;
     font-size: 0.95rem;
+}
+
+.download-btn:hover {
+    background: #1f4a91;
 }
 
 .inline-form {
@@ -151,16 +50,8 @@ button,
     border-radius: 4px;
 }
 
-.project3 .page-footer {
-    margin-top: 24px;
-    text-align: center;
-}
-
-.project3 .page-footer button {
-    background: #275CB2;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
+@media (max-width: 640px) {
+    .box.project3 {
+        padding: 18px 16px 28px;
+    }
 }

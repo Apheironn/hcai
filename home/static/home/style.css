@@ -1,28 +1,6 @@
-.home-page {
-    width: min(920px, 94%);
-    margin: 32px auto 48px;
-    padding: 32px 36px 40px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 8px 28px rgba(20, 50, 100, 0.12);
-}
-
-.home-header {
+.home-page .page-header {
     text-align: center;
-    margin-bottom: 28px;
-}
-
-.home-header h1 {
-    margin: 0 0 8px;
-    font-size: 2rem;
-    color: #1a4480;
-    font-weight: 600;
-}
-
-.home-lead {
-    margin: 0;
-    color: #5a6b7d;
-    font-size: 1rem;
+    margin-bottom: 24px;
 }
 
 .project-grid {
@@ -36,7 +14,7 @@
     flex-direction: column;
     gap: 8px;
     padding: 20px 22px;
-    background: #f7f9fc;
+    background: #f8fafc;
     border: 1px solid #dde5f0;
     border-radius: 8px;
     text-decoration: none;
@@ -45,12 +23,12 @@
 
 .project-card:hover {
     border-color: #275CB2;
-    box-shadow: 0 6px 18px rgba(39, 92, 178, 0.12);
+    box-shadow: 0 6px 18px rgba(39, 92, 178, 0.1);
     transform: translateY(-2px);
 }
 
 .project-label {
-    font-size: 1.1rem;
+    font-size: 1.08rem;
     font-weight: 600;
     color: #275CB2;
 }
@@ -58,7 +36,7 @@
 .project-desc {
     font-size: 0.92rem;
     color: #5a6b7d;
-    line-height: 1.4;
+    line-height: 1.45;
 }
 
 .empty-note {
@@ -68,9 +46,9 @@
 }
 
 .team-card {
-    margin-top: 28px;
+    margin-top: 24px;
     padding: 18px 20px;
-    background: #f7f9fc;
+    background: #f8fafc;
     border: 1px solid #dde5f0;
     border-radius: 8px;
 }
@@ -112,10 +90,6 @@
 }
 
 @media (max-width: 600px) {
-    .home-page {
-        padding: 24px 20px 32px;
-    }
-
     .team-list li {
         flex-direction: column;
         gap: 4px;
