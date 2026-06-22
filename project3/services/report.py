@@ -29,9 +29,10 @@ class ReportBuilder:
             self._page(pdf, self._task1_lines())
             if self.data.get("expert_report"):
                 self._page(pdf, self._task2_lines())
-                self._plot_page(pdf, self.data.get("expert_chart_url"), "Expert per-class accuracy")
+                self._plot_page(pdf, self.data.get("expert_chart_url"), "Expert vs classifier (test)")
             if self.data.get("defer_metrics"):
                 self._page(pdf, self._task3_lines())
+                self._plot_page(pdf, self.data.get("defer_chart_url"), "Learning-to-defer evaluation")
             if self.data.get("active_final_accuracy") is not None:
                 self._page(pdf, self._task4_lines())
                 self._plot_page(pdf, self.data.get("active_chart_url"), "Active learning curves")

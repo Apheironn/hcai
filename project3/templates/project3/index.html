@@ -57,9 +57,10 @@
         <p><strong>Strengths:</strong> {{ expert_report.strengths }}</p>
         <p><strong>Weaknesses:</strong> {{ expert_report.weaknesses }}</p>
         {% if expert_chart_url %}
-        <div class="plot-frame">
-            <img src="{{ expert_chart_url }}" alt="Expert per-class accuracy" class="plot-image">
+        <div class="plot-frame plot-wide">
+            <img src="{{ expert_chart_url }}" alt="Expert vs classifier accuracy" class="plot-image">
         </div>
+        <p class="plot-caption">Green = expert, blue = classifier. Gaps show where deferral can help.</p>
         {% endif %}
         {% endif %}
     </section>
@@ -72,6 +73,11 @@
             <button type="submit">Train defer system</button>
         </form>
         {% if defer_metrics %}
+        {% if defer_chart_url %}
+        <div class="plot-frame plot-wide">
+            <img src="{{ defer_chart_url }}" alt="Defer system evaluation" class="plot-image">
+        </div>
+        {% endif %}
         <table class="results-table">
             <tr><th>Metric</th><th>Value</th></tr>
             <tr><td>Team accuracy</td><td>{{ defer_metrics.team_accuracy }}</td></tr>
@@ -97,6 +103,7 @@
         <div class="plot-frame plot-wide">
             <img src="{{ active_chart_url }}" alt="Active learning curves" class="plot-image">
         </div>
+        <p class="plot-caption">Dashed line = classifier-only baseline. Dotted line = full rejector (Task 3). Orange axis = defer rate.</p>
         <table class="results-table">
             <tr><th>Setting</th><th>Final team accuracy</th></tr>
             <tr><td>Hybrid strategy</td><td>{{ active_final_accuracy }}</td></tr>

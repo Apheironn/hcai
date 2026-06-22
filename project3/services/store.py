@@ -33,6 +33,7 @@ class ModelStore:
             "baseline_accuracy": classifier.test_accuracy,
             "rejector_path": None,
             "defer_metrics": None,
+            "defer_chart_url": None,
             "expert_report": None,
             "expert_chart_url": None,
             "active_chart_url": None,

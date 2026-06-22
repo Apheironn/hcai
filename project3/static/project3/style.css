@@ -82,6 +82,13 @@
     max-width: 100%;
 }
 
+.plot-caption {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    text-align: center;
+}
+
 .plot-image {
     max-width: 100%;
     border-radius: 6px;
