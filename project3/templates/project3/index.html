@@ -13,6 +13,108 @@
         <p class="subtitle">Active learning for human-AI collaboration on AG News.</p>
     </header>
 
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if n_train %}
+    <section class="card">
+        <h2>1. Dataset</h2>
+        <div class="summary-grid">
+            <div class="stat"><span>Train</span><strong>{{ n_train }}</strong></div>
+            <div class="stat"><span>Test</span><strong>{{ n_test }}</strong></div>
+            <div class="stat"><span>Classes</span><strong>{{ class_names|length }}</strong></div>
+        </div>
+        {% if class_chart_url %}
+        <div class="plot-frame">
+            <img src="{{ class_chart_url }}" alt="Class distribution" class="plot-image">
+        </div>
+        {% endif %}
+        <div class="table-wrap">{{ preview_html|safe }}</div>
+    </section>
+
+    <section class="card">
+        <h2>2. Task 1 — Baseline classifier</h2>
+        <p class="hint">TF-IDF + Logistic Regression on the full train split.</p>
+        {% if baseline_accuracy %}
+        <div class="stat highlight"><span>Test accuracy</span><strong>{{ baseline_accuracy }}</strong></div>
+        {% else %}
+        <p class="hint">Training baseline on first visit…</p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>3. Task 2 — Simulated expert</h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="run_expert">
+            <button type="submit">Analyze expert</button>
+        </form>
+        {% if expert_report %}
+        <div class="summary-grid">
+            <div class="stat"><span>Test accuracy</span><strong>{{ expert_report.overall_accuracy }}</strong></div>
+        </div>
+        <p><strong>Strengths:</strong> {{ expert_report.strengths }}</p>
+        <p><strong>Weaknesses:</strong> {{ expert_report.weaknesses }}</p>
+        {% if expert_chart_url %}
+        <div class="plot-frame">
+            <img src="{{ expert_chart_url }}" alt="Expert per-class accuracy" class="plot-image">
+        </div>
+        {% endif %}
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>4. Task 3 — Learning to defer</h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="run_defer">
+            <button type="submit">Train defer system</button>
+        </form>
+        {% if defer_metrics %}
+        <table class="results-table">
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>Team accuracy</td><td>{{ defer_metrics.team_accuracy }}</td></tr>
+            <tr><td>Classifier only</td><td>{{ defer_metrics.classifier_accuracy }}</td></tr>
+            <tr><td>Expert only</td><td>{{ defer_metrics.expert_accuracy }}</td></tr>
+            <tr><td>Defer rate</td><td>{{ defer_metrics.defer_rate }}</td></tr>
+            <tr><td>Defer precision</td><td>{{ defer_metrics.defer_precision }}</td></tr>
+            <tr><td>Defer recall</td><td>{{ defer_metrics.defer_recall }}</td></tr>
+        </table>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>5. Task 4 — Active learning</h2>
+        <form method="post" class="inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="run_active">
+            <label>Budget <input type="number" name="budget" value="2000" min="100" max="5000"></label>
+            <label>Batch <input type="number" name="batch_size" value="100" min="50" max="500"></label>
+            <button type="submit">Run active learning</button>
+        </form>
+        {% if active_chart_url %}
+        <div class="plot-frame plot-wide">
+            <img src="{{ active_chart_url }}" alt="Active learning curves" class="plot-image">
+        </div>
+        <table class="results-table">
+            <tr><th>Setting</th><th>Final team accuracy</th></tr>
+            <tr><td>Hybrid strategy</td><td>{{ active_final_accuracy }}</td></tr>
+            <tr><td>Random baseline</td><td>{{ active_random_final_accuracy }}</td></tr>
+            {% if oracle_team_accuracy %}
+            <tr><td>Task 3 (full rejector)</td><td>{{ oracle_team_accuracy }}</td></tr>
+            {% endif %}
+        </table>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="card">
+        <h2>Report</h2>
+        <p class="hint">Download the PDF report with experiment description and results.</p>
+        <a class="download-btn" href="{{ report_url }}" download>Download report (PDF)</a>
+    </section>
+
     <footer class="page-footer">
         <form action="{% url 'home:index' %}" method="get">
             <button type="submit">Return to main page</button>

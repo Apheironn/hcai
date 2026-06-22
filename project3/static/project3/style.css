@@ -17,6 +17,133 @@
     color: #5a6b7d;
 }
 
+.card {
+    background: #f7f9fc;
+    border: 1px solid #dde5f0;
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-top: 18px;
+}
+
+.card h2 {
+    margin: 0 0 14px;
+    color: #275CB2;
+    font-size: 1.15rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.stat {
+    background: #fff;
+    border: 1px solid #dde5f0;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.stat span {
+    display: block;
+    font-size: 0.8rem;
+    color: #5a6b7d;
+}
+
+.stat strong {
+    font-size: 1.1rem;
+    color: #1a4480;
+}
+
+.stat.highlight {
+    max-width: 220px;
+}
+
+.hint {
+    color: #5a6b7d;
+    font-size: 0.92rem;
+}
+
+.error {
+    color: #b42318;
+    background: #fef3f2;
+    border: 1px solid #fecdca;
+    padding: 10px 12px;
+    border-radius: 6px;
+}
+
+.plot-frame {
+    margin: 12px 0;
+    text-align: center;
+}
+
+.plot-wide img {
+    max-width: 100%;
+}
+
+.plot-image {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid #dde5f0;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+
+.results-table th,
+.results-table td {
+    border: 1px solid #dde5f0;
+    padding: 8px 10px;
+    text-align: left;
+}
+
+.results-table th {
+    background: #eef3fa;
+    color: #1a4480;
+}
+
+button,
+.download-btn {
+    background: #275CB2;
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 0.95rem;
+}
+
+.inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.inline-form label {
+    font-size: 0.9rem;
+    color: #3d4f63;
+}
+
+.inline-form input[type="number"] {
+    width: 90px;
+    margin-left: 6px;
+    padding: 6px 8px;
+    border: 1px solid #c5d3e5;
+    border-radius: 4px;
+}
+
 .project3 .page-footer {
     margin-top: 24px;
     text-align: center;
