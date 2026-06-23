@@ -15,6 +15,16 @@ class Project2Tests(TestCase):
         self.assertIn("candidates", data)
         self.assertIn("pareto_url", data)
 
+    def test_preview_json(self):
+        session = self.client.session
+        session.save()
+        self.client.get("/project2/")
+        response = self.client.get("/project2/preview/?model_type=tree&lambda=0&row_index=0")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("label", data)
+        self.assertIn("predicted", data)
+
     def test_counterfactual_post(self):
         self.client.get("/project2/")
         response = self.client.post(

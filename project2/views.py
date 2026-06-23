@@ -189,6 +189,35 @@ def index(request):
     return render(request, "project2/index.html", context)
 
 
+def preview_instance(request):
+    dataset = _get_dataset()
+    bank = _ensure_bank(request, dataset)
+    model_type, lambda_value = _parse_controls(request)
+    try:
+        row_index = int(request.GET.get("row_index", 0))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Invalid row index."}, status=400)
+
+    try:
+        candidates = bank.for_type(model_type)
+        selected = ModelSelector.select(candidates, lambda_value)
+        model = bank.load_model(selected)
+        summary = CounterfactualFinder.instance_summary(dataset, row_index, model)
+        raw = summary["raw"]
+        return JsonResponse(
+            {
+                "label": summary["label"],
+                "predicted": summary["predicted"],
+                "island": raw.get("island"),
+                "sex": raw.get("sex"),
+                "bill_length_mm": raw.get("bill_length_mm"),
+                "bill_depth_mm": raw.get("bill_depth_mm"),
+            }
+        )
+    except (ValueError, IndexError) as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+
 def select_model(request):
     dataset = _get_dataset()
     bank = _ensure_bank(request, dataset)

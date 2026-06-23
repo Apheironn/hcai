@@ -125,10 +125,17 @@
             <button type="submit" data-loading-text="Searching…">Generate</button>
         </form>
 
+        <div class="instance-card" id="cf-live-preview">
+            <strong>Live preview:</strong>
+            <span class="hint">Select an example to see the current model prediction.</span>
+        </div>
+
         {% if cf_instance %}
         <div class="instance-card">
             <strong>Selected instance:</strong> true species <span class="badge">{{ cf_instance.label }}</span>
             · model predicts <span class="badge badge-warn">{{ cf_instance.predicted }}</span>
+            · {{ cf_instance.raw.island }} · {{ cf_instance.raw.sex }}
+            · bill {{ cf_instance.raw.bill_length_mm }} / {{ cf_instance.raw.bill_depth_mm }} mm
         </div>
         {% endif %}
 
@@ -206,6 +213,7 @@
 {% block script %}
 <script>
 const selectUrl = "{% url 'project2:select' %}";
+const previewUrl = "{% url 'project2:preview' %}";
 let candidates = {{ candidates_json|safe }};
 let modelType = "{{ model_type }}";
 let lambdaValue = {{ lambda_value }};
@@ -222,6 +230,9 @@ const modelPlot = document.getElementById("model-plot");
 const paretoPlot = document.getElementById("pareto-plot");
 const candidateBody = document.getElementById("candidate-body");
 const modelRadios = document.querySelectorAll('input[name="model_type_ui"]');
+const cfRowSelect = document.querySelector('#counterfactuals select[name="row_index"]');
+const cfTargetSelect = document.querySelector('#counterfactuals select[name="target_class"]');
+const cfLivePreview = document.getElementById("cf-live-preview");
 
 function syncHiddenFields() {
     ["cf-model-type", "fx-model-type"].forEach((id) => {
@@ -272,6 +283,7 @@ async function refreshSelection() {
         if (data.pareto_url) paretoPlot.src = data.pareto_url;
         candidates = data.candidates;
         rebuildTable();
+        updateCfPreview();
     } catch (err) {
         ajaxError.textContent = "Network error while updating model.";
         ajaxError.style.display = "block";
@@ -296,5 +308,34 @@ modelRadios.forEach((radio) => {
 });
 
 syncHiddenFields();
+
+async function updateCfPreview() {
+    if (!cfRowSelect || !cfLivePreview) return;
+    const rowIndex = cfRowSelect.value;
+    const target = cfTargetSelect ? cfTargetSelect.value : "";
+    try {
+        const response = await fetch(
+            `${previewUrl}?model_type=${modelType}&lambda=${lambdaValue}&row_index=${rowIndex}`
+        );
+        const data = await response.json();
+        if (!response.ok) return;
+        cfLivePreview.innerHTML = `
+            <strong>Live preview:</strong>
+            true species <span class="badge">${data.label}</span>
+            · model predicts <span class="badge badge-warn">${data.predicted}</span>
+            · target <span class="badge">${target}</span><br>
+            <span class="hint">${data.island} · ${data.sex} · bill ${data.bill_length_mm} / ${data.bill_depth_mm} mm</span>`;
+    } catch (err) {
+        /* ignore preview errors */
+    }
+}
+
+if (cfRowSelect) {
+    cfRowSelect.addEventListener("change", updateCfPreview);
+}
+if (cfTargetSelect) {
+    cfTargetSelect.addEventListener("change", updateCfPreview);
+}
+updateCfPreview();
 </script>
 {% endblock script %}
