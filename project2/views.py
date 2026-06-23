@@ -9,6 +9,7 @@ from .services.counterfactual import CounterfactualFinder
 from .services.dataset import NUMERIC_FEATURES, PenguinDataset
 from .services.effects import EffectPlots
 from .services.model_bank import ModelBank
+from .services.pareto_plot import ParetoPlotter
 from .services.plot_style import PlotStyle
 from .services.selector import ModelSelector
 from .services.tree_plot import TreePlotter
@@ -64,6 +65,7 @@ def _build_context(request, dataset, bank, model_type, lambda_value, extra=None)
     rows, selected = ModelSelector.scored_candidates(candidates, lambda_value)
     plot_url = _render_plot(bank, dataset, selected)
     score = ModelSelector.score(selected, lambda_value)
+    pareto_url = ParetoPlotter.render(candidates, lambda_value, selected.id)
 
     context = {
         "dataset": dataset,
@@ -74,6 +76,7 @@ def _build_context(request, dataset, bank, model_type, lambda_value, extra=None)
         "selected": selected,
         "candidate_rows": rows,
         "plot_url": plot_url,
+        "pareto_url": pareto_url,
         "score": round(score, 4),
         "param_text": f"{selected.param_label}={selected.param_value}",
         "row_choices": [(i, dataset.row_label(i)) for i in range(dataset.n_rows)],
@@ -82,6 +85,8 @@ def _build_context(request, dataset, bank, model_type, lambda_value, extra=None)
         "candidates_json": json.dumps(rows),
         "error": None,
         "counterfactual_results": None,
+        "cf_scatter_url": None,
+        "cf_instance": None,
         "effect_plot_url": None,
         "effect_note": None,
     }
@@ -96,6 +101,8 @@ def index(request):
     model_type, lambda_value = _parse_controls(request)
     error = None
     counterfactual_results = None
+    cf_scatter_url = None
+    cf_instance = None
     effect_plot_url = None
     effect_note = None
 
@@ -130,6 +137,13 @@ def index(request):
                         )
                     if not counterfactual_results:
                         error = "No counterfactuals found. Try another example or model."
+                    else:
+                        cf_scatter_url = CounterfactualFinder.scatter_plot(
+                            dataset, row_index, found
+                        )
+                        cf_instance = CounterfactualFinder.instance_summary(
+                            dataset, row_index, model
+                        )
                 except ValueError as exc:
                     error = str(exc)
             else:
@@ -166,6 +180,8 @@ def index(request):
         {
             "error": error,
             "counterfactual_results": counterfactual_results,
+            "cf_scatter_url": cf_scatter_url,
+            "cf_instance": cf_instance,
             "effect_plot_url": effect_plot_url,
             "effect_note": effect_note,
         },
@@ -182,6 +198,7 @@ def select_model(request):
         candidates = bank.for_type(model_type)
         rows, selected = ModelSelector.scored_candidates(candidates, lambda_value)
         plot_url = _render_plot(bank, dataset, selected)
+        pareto_url = ParetoPlotter.render(candidates, lambda_value, selected.id)
         return JsonResponse(
             {
                 "accuracy": selected.test_accuracy,
@@ -189,6 +206,7 @@ def select_model(request):
                 "score": round(ModelSelector.score(selected, lambda_value), 4),
                 "param": f"{selected.param_label}={selected.param_value}",
                 "plot_url": plot_url,
+                "pareto_url": pareto_url,
                 "selected_id": selected.id,
                 "candidates": rows,
             }

@@ -159,6 +159,69 @@ class ResultPlots:
         fig.tight_layout()
         return PlotStyle.save(fig)
 
+    @classmethod
+    def human_vs_simulated(cls, report):
+        per_class = report["per_class"]
+        names = [n for n in CLASS_NAMES if per_class[n]["human"] is not None]
+        if not names:
+            return None
+        fig, ax = plt.subplots(figsize=(7.5, 4.2), facecolor=PlotStyle.BG)
+        x = np.arange(len(names))
+        width = 0.34
+        human_vals = [per_class[n]["human"] for n in names]
+        expert_vals = [per_class[n]["expert"] for n in names]
+        ax.bar(x - width / 2, human_vals, width, label="You (human)", color="#E15759", alpha=0.9)
+        ax.bar(x + width / 2, expert_vals, width, label="Simulated expert", color="#59A14F", alpha=0.9)
+        ax.set_xticks(x)
+        ax.set_xticklabels(names)
+        ax.set_ylim(0, 1.05)
+        ax.set_title("Human vs simulated expert (labeled articles)", fontsize=12, weight="bold", color="#1a4480")
+        ax.set_ylabel("Accuracy")
+        ax.legend(frameon=False, fontsize=9)
+        PlotStyle.apply(ax)
+        fig.tight_layout()
+        return PlotStyle.save(fig)
+
+    @classmethod
+    def defer_inspector(cls, dataset, system, n=5):
+        texts = dataset.test_texts[:200]
+        labels = dataset.test_labels[:200]
+        team, defer_mask = system.predict(texts)
+        clf_preds = system.classifier.predict(texts)
+        expert_preds = system.expert.predict_batch(texts)
+
+        rows = []
+        for i in range(len(texts)):
+            rows.append(
+                {
+                    "deferred": bool(defer_mask[i]),
+                    "team_ok": bool(team[i] == labels[i]),
+                    "clf_ok": bool(clf_preds[i] == labels[i]),
+                    "exp_ok": bool(expert_preds[i] == labels[i]),
+                    "snippet": texts[i][:80] + "…",
+                }
+            )
+        deferred = [r for r in rows if r["deferred"]][:n]
+        kept = [r for r in rows if not r["deferred"]][:n]
+
+        fig, ax = plt.subplots(figsize=(8, 4), facecolor=PlotStyle.BG)
+        categories = ["Deferred (correct team)", "Deferred (wrong team)", "Kept (correct team)", "Kept (wrong team)"]
+        counts = [
+            sum(1 for r in deferred if r["team_ok"]),
+            sum(1 for r in deferred if not r["team_ok"]),
+            sum(1 for r in kept if r["team_ok"]),
+            sum(1 for r in kept if not r["team_ok"]),
+        ]
+        colors = ["#59A14F", "#E15759", "#4E79A7", "#F28E2B"]
+        bars = ax.bar(categories, counts, color=colors, alpha=0.9, edgecolor="white")
+        ax.set_title("Defer decision quality (sample)", fontsize=11, weight="bold", color="#1a4480")
+        ax.set_ylabel("Count (up to 5 each)")
+        _label_bars(ax, bars, fmt="{:.0f}")
+        PlotStyle.apply(ax)
+        plt.setp(ax.get_xticklabels(), rotation=15, ha="right", fontsize=8)
+        fig.tight_layout()
+        return PlotStyle.save(fig), {"deferred": deferred, "kept": kept}
+
     @staticmethod
     def per_class_accuracy(preds, labels):
         result = {}

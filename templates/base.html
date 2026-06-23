@@ -5,7 +5,6 @@
     <head>
         <link rel= "stylesheet" href="{% static 'style.css' %}">
         {% block extra_css %}{% endblock %}
-        <link rel="shortcut icon" href="{% static 'favicon/favicon.ico' %}">
         <title>{% block title %}HCAI Projects{% endblock %}</title>
         <style></style>
     </head>
@@ -17,5 +16,17 @@
 
         {% block script %}
         {% endblock script %}
+        <script>
+        document.querySelectorAll("form[data-loading]").forEach((form) => {
+            form.addEventListener("submit", () => {
+                const btn = form.querySelector('button[type="submit"]');
+                if (btn && !btn.disabled) {
+                    btn.disabled = true;
+                    btn.classList.add("is-loading");
+                    if (btn.dataset.loadingText) btn.textContent = btn.dataset.loadingText;
+                }
+            });
+        });
+        </script>
     </body>
 </html>

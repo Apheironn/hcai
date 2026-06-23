@@ -12,6 +12,27 @@ SCI_WORDS = {"software", "computer", "technology", "internet", "microsoft", "chi
 WORLD_WORDS = {"government", "president", "war", "country", "minister", "official", "nation", "peace", "election", "united"}
 
 
+KEYWORD_MAP = {
+    "world": WORLD_WORDS,
+    "sports": SPORTS_WORDS,
+    "business": BUSINESS_WORDS,
+    "scitech": SCI_WORDS,
+}
+
+
+def highlight_keywords(text, max_len=280):
+    import html
+    import re
+
+    snippet = text if len(text) <= max_len else text[: max_len - 3] + "..."
+    escaped = html.escape(snippet)
+    for css_class, words in KEYWORD_MAP.items():
+        for word in sorted(words, key=len, reverse=True):
+            pattern = re.compile(rf"\b({re.escape(word)})\b", re.IGNORECASE)
+            escaped = pattern.sub(rf'<span class="kw-{css_class}">\1</span>', escaped)
+    return escaped
+
+
 @dataclass
 class ExpertReport:
     name: str

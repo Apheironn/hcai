@@ -1,8 +1,10 @@
 import copy
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from .dataset import CATEGORICAL_FEATURES, NUMERIC_FEATURES
+from .plot_style import PlotStyle
 
 
 class CounterfactualFinder:
@@ -116,3 +118,66 @@ class CounterfactualFinder:
                 }
             )
         return rows
+
+    @classmethod
+    def scatter_plot(cls, dataset, row_index, found, x_feat=None, y_feat=None):
+        from .dataset import NUMERIC_FEATURES
+
+        x_feat = x_feat or NUMERIC_FEATURES[0]
+        y_feat = y_feat or NUMERIC_FEATURES[1]
+        raw, label = dataset.row_raw(row_index)
+
+        fig, ax = plt.subplots(figsize=(7, 5), dpi=PlotStyle.DPI)
+        fig.patch.set_facecolor(PlotStyle.BG)
+        ax.set_facecolor(PlotStyle.BG)
+
+        ax.scatter(
+            dataset.df_raw[x_feat],
+            dataset.df_raw[y_feat],
+            alpha=0.25,
+            s=30,
+            c="#94a3b8",
+            edgecolors="none",
+        )
+        ax.scatter(
+            [raw[x_feat]],
+            [raw[y_feat]],
+            s=140,
+            c="#275CB2",
+            edgecolors="white",
+            linewidths=1.5,
+            label=f"Original ({label})",
+            zorder=5,
+        )
+        for i, item in enumerate(found[:5]):
+            vals = item["values"]
+            ax.scatter(
+                [vals[x_feat]],
+                [vals[y_feat]],
+                s=100,
+                c="#59A14F",
+                edgecolors="white",
+                marker="D",
+                label=f"CF {i + 1}" if i == 0 else None,
+                zorder=4,
+            )
+
+        ax.set_xlabel(x_feat)
+        ax.set_ylabel(y_feat)
+        ax.set_title("Counterfactuals in feature space", fontsize=12, weight="bold")
+        ax.legend(frameon=True, fontsize=8)
+        PlotStyle.apply(ax)
+        fig.tight_layout()
+        return PlotStyle.save(fig)
+
+    @classmethod
+    def instance_summary(cls, dataset, row_index, model):
+        raw, label = dataset.row_raw(row_index)
+        scaled = dataset.scale_vector(dataset.encode_row(raw))
+        pred_id = int(model.predict(scaled)[0])
+        predicted = dataset.label_encoder.inverse_transform([pred_id])[0]
+        return {
+            "label": label,
+            "predicted": predicted,
+            "raw": raw,
+        }

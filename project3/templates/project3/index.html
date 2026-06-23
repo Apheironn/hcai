@@ -8,17 +8,42 @@
 
 {% block content %}
 <div class="box project3">
+    <nav class="top-nav">
+        <a href="{% url 'home:index' %}">← Home</a>
+        <span class="top-nav-title">Project 3</span>
+    </nav>
+
     <header class="page-header">
         <h1>Project 3 — Learning to Defer</h1>
         <p class="subtitle">Active learning for human-AI collaboration on AG News.</p>
     </header>
+
+    {% if workflow %}
+    <ul class="task-checklist">
+        <li class="{% if workflow.baseline %}done{% endif %}">Task 1 — Baseline classifier</li>
+        <li class="{% if workflow.expert %}done{% endif %}">Task 2 — Simulated expert</li>
+        <li class="{% if workflow.defer %}done{% endif %}">Task 3 — Learning to defer</li>
+        <li class="{% if workflow.active %}done{% endif %}">Task 4 — Active learning</li>
+        <li class="{% if workflow.human %}done{% endif %}">Task 5 — Human expert</li>
+    </ul>
+    {% endif %}
+
+    <nav class="step-nav">
+        <a href="#dataset">Dataset</a>
+        <a href="#task1">Baseline</a>
+        <a href="#task2">Expert</a>
+        <a href="#task3">Defer</a>
+        <a href="#task4">Active</a>
+        <a href="#task5">Human</a>
+        <a href="#report">Report</a>
+    </nav>
 
     {% if error %}
     <p class="error">{{ error }}</p>
     {% endif %}
 
     {% if n_train %}
-    <section class="card">
+    <section class="card" id="dataset">
         <h2>1. Dataset</h2>
         <div class="summary-grid">
             <div class="stat"><span>Train</span><strong>{{ n_train }}</strong></div>
@@ -33,7 +58,7 @@
         <div class="table-wrap">{{ preview_html|safe }}</div>
     </section>
 
-    <section class="card">
+    <section class="card" id="task1">
         <h2>2. Task 1 — Baseline classifier</h2>
         <p class="hint">TF-IDF + Logistic Regression on the full train split.</p>
         {% if baseline_accuracy %}
@@ -43,12 +68,12 @@
         {% endif %}
     </section>
 
-    <section class="card">
+    <section class="card" id="task2">
         <h2>3. Task 2 — Simulated expert</h2>
-        <form method="post">
+        <form method="post" data-loading>
             {% csrf_token %}
             <input type="hidden" name="action" value="run_expert">
-            <button type="submit">Analyze expert</button>
+            <button type="submit" data-loading-text="Analyzing…">Analyze expert</button>
         </form>
         {% if expert_report %}
         <div class="summary-grid">
@@ -65,12 +90,13 @@
         {% endif %}
     </section>
 
-    <section class="card">
+    <section class="card" id="task3">
         <h2>4. Task 3 — Learning to defer</h2>
-        <form method="post">
+        <p class="hint">May take 10–30 seconds.</p>
+        <form method="post" data-loading>
             {% csrf_token %}
             <input type="hidden" name="action" value="run_defer">
-            <button type="submit">Train defer system</button>
+            <button type="submit" data-loading-text="Training…">Train defer system</button>
         </form>
         {% if defer_metrics %}
         {% if defer_chart_url %}
@@ -78,32 +104,52 @@
             <img src="{{ defer_chart_url }}" alt="Defer system evaluation" class="plot-image">
         </div>
         {% endif %}
+        {% if defer_inspector_url %}
+        <div class="plot-frame plot-wide">
+            <img src="{{ defer_inspector_url }}" alt="Defer inspector" class="plot-image">
+        </div>
+        {% endif %}
         <table class="results-table">
             <tr><th>Metric</th><th>Value</th></tr>
-            <tr><td>Team accuracy</td><td>{{ defer_metrics.team_accuracy }}</td></tr>
+            <tr><td>Team accuracy</td><td><span class="badge badge-success">{{ defer_metrics.team_accuracy }}</span></td></tr>
             <tr><td>Classifier only</td><td>{{ defer_metrics.classifier_accuracy }}</td></tr>
             <tr><td>Expert only</td><td>{{ defer_metrics.expert_accuracy }}</td></tr>
             <tr><td>Defer rate</td><td>{{ defer_metrics.defer_rate }}</td></tr>
             <tr><td>Defer precision</td><td>{{ defer_metrics.defer_precision }}</td></tr>
             <tr><td>Defer recall</td><td>{{ defer_metrics.defer_recall }}</td></tr>
         </table>
+        {% if defer_inspector_rows %}
+        <h3>Sample defer decisions</h3>
+        <div class="table-wrap">
+            <table class="results-table">
+                <tr><th>Type</th><th>Snippet</th><th>Team OK</th></tr>
+                {% for row in defer_inspector_rows.deferred %}
+                <tr><td>Deferred</td><td>{{ row.snippet }}</td><td>{% if row.team_ok %}✓{% else %}✗{% endif %}</td></tr>
+                {% endfor %}
+                {% for row in defer_inspector_rows.kept %}
+                <tr><td>Kept</td><td>{{ row.snippet }}</td><td>{% if row.team_ok %}✓{% else %}✗{% endif %}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
         {% endif %}
     </section>
 
-    <section class="card">
+    <section class="card" id="task4">
         <h2>5. Task 4 — Active learning</h2>
-        <form method="post" class="inline-form">
+        <p class="hint">Hybrid vs random querying — may take 10–30 seconds.</p>
+        <form method="post" class="inline-form" data-loading>
             {% csrf_token %}
             <input type="hidden" name="action" value="run_active">
-            <label>Budget <input type="number" name="budget" value="2000" min="100" max="5000"></label>
+            <label>Budget <input type="number" name="budget" value="1000" min="100" max="5000"></label>
             <label>Batch <input type="number" name="batch_size" value="100" min="50" max="500"></label>
-            <button type="submit">Run active learning</button>
+            <button type="submit" data-loading-text="Running…">Run active learning</button>
         </form>
         {% if active_chart_url %}
         <div class="plot-frame plot-wide">
             <img src="{{ active_chart_url }}" alt="Active learning curves" class="plot-image">
         </div>
-        <p class="plot-caption">Dashed line = classifier-only baseline. Dotted line = full rejector (Task 3). Orange axis = defer rate.</p>
+        <p class="plot-caption">Dashed = classifier baseline. Dotted = full rejector (Task 3). Orange axis = defer rate.</p>
         <table class="results-table">
             <tr><th>Setting</th><th>Final team accuracy</th></tr>
             <tr><td>Hybrid strategy</td><td>{{ active_final_accuracy }}</td></tr>
@@ -114,12 +160,71 @@
         </table>
         {% endif %}
     </section>
+
+    <section class="card" id="task5">
+        <h2>6. Task 5 — Play the expert</h2>
+        <p class="hint">Label news articles yourself. Highlighted words show what the simulated expert uses.</p>
+        <form method="post" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="load_human_batch">
+            <button type="submit">Load 5 articles</button>
+        </form>
+        {% if batch_articles %}
+        <p class="hint">Progress: {{ human_done }} / {{ human_total }} labeled</p>
+        {% for article in batch_articles %}
+        <div class="article-card">
+            <p>{{ article.text_html|safe }}</p>
+            {% if article.labeled %}
+            <span class="badge badge-success">Labeled: {{ article.label }}</span>
+            {% else %}
+            <div class="class-buttons">
+                {% for name in class_names %}
+                <form method="post" style="display:inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="label_expert">
+                    <input type="hidden" name="article_index" value="{{ article.index }}">
+                    <input type="hidden" name="class_name" value="{{ name }}">
+                    <button type="submit">{{ name }}</button>
+                </form>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <form method="post" data-loading style="margin-top:12px">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="finish_human">
+            <button type="submit" data-loading-text="Computing…">Finish & compare</button>
+        </form>
+        {% endif %}
+        {% if human_report %}
+        <div class="summary-grid">
+            <div class="stat"><span>Your accuracy</span><strong>{{ human_report.human_accuracy }}</strong></div>
+            <div class="stat"><span>Simulated expert</span><strong>{{ human_report.expert_accuracy }}</strong></div>
+        </div>
+        {% if human_chart_url %}
+        <div class="plot-frame plot-wide">
+            <img src="{{ human_chart_url }}" alt="Human vs simulated" class="plot-image">
+        </div>
+        {% endif %}
+        {% endif %}
+    </section>
     {% endif %}
 
-    <section class="card">
+    <section class="card" id="report">
         <h2>Report</h2>
-        <p class="hint">Download a PDF with your current experiment results from this session.</p>
-        <a class="download-btn" href="{{ report_url }}" download>Download report (PDF)</a>
+        <p class="hint">Download a PDF with experiment results from this session.</p>
+        {% if report_ready %}
+        <a class="download-btn" href="{{ report_url }}">Download report (PDF)</a>
+        {% else %}
+        <a class="download-btn disabled" href="#">Download report (PDF)</a>
+        <p class="empty-state">Open Project 3 and wait for baseline training first.</p>
+        {% endif %}
+        <form method="post" style="margin-top:16px" onsubmit="return confirm('Reset all Project 3 session data?');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reset_session">
+            <button type="submit" style="background:#94a3b8">Reset session</button>
+        </form>
     </section>
 
     <footer class="page-footer">

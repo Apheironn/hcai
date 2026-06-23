@@ -24,7 +24,10 @@ def index(request):
     dataset = None
     preview_html = None
     plot_url = None
+    hist_url = None
+    class_chart_url = None
     train_result = None
+    train_plot_url = None
     model_choices = []
     metric_choices = []
     param_name = ""
@@ -43,10 +46,20 @@ def index(request):
                     dataset, path = Dataset.from_upload(upload_form.cleaned_data["file"])
                     request.session[SESSION_KEY] = dataset.to_session(path)
                     preview_html = dataset.preview()
+                    class_chart_url = PlotBuilder.class_distribution(dataset)
                 except ValueError as exc:
                     error = str(exc)
             else:
                 error = "Select a valid CSV file."
+
+        elif action == "load_sample":
+            try:
+                dataset, path = Dataset.from_sample()
+                request.session[SESSION_KEY] = dataset.to_session(path)
+                preview_html = dataset.preview()
+                class_chart_url = PlotBuilder.class_distribution(dataset)
+            except ValueError as exc:
+                error = str(exc)
 
         elif action == "plot":
             plot_form = PlotForm(request.POST)
@@ -61,6 +74,18 @@ def index(request):
                         plot_form.cleaned_data["y_feature"] or None,
                     )
                     preview_html = dataset.preview()
+                    class_chart_url = PlotBuilder.class_distribution(dataset)
+                except ValueError as exc:
+                    error = str(exc)
+
+        elif action == "histogram":
+            plot_form = PlotForm(request.POST)
+            if plot_form.is_valid():
+                try:
+                    dataset = _load_dataset(request, plot_form.cleaned_data["problem_type"])
+                    hist_url = PlotBuilder.histogram(dataset, plot_form.cleaned_data["x_feature"])
+                    preview_html = dataset.preview()
+                    class_chart_url = PlotBuilder.class_distribution(dataset)
                 except ValueError as exc:
                     error = str(exc)
 
@@ -76,14 +101,39 @@ def index(request):
                         train_form.cleaned_data["param_values"],
                         train_form.cleaned_data["metric"],
                     )
+                    train_plot_url = PlotBuilder.param_sweep(
+                        train_result["results"],
+                        train_result["param_name"],
+                        train_result["metric"],
+                        train_result["lower_is_better"],
+                    )
+                    if dataset.problem_type == "classification":
+                        train_plot_url_extra = PlotBuilder.confusion_matrix_plot(
+                            train_result["y_test"],
+                            train_result["y_pred"],
+                            train_result["label_classes"],
+                        )
+                        train_result["diagnostic_plot_url"] = train_plot_url_extra
+                    else:
+                        train_result["diagnostic_plot_url"] = PlotBuilder.residuals(
+                            train_result["y_test"], train_result["y_pred"]
+                        )
                     preview_html = dataset.preview()
+                    class_chart_url = PlotBuilder.class_distribution(dataset)
                 except ValueError as exc:
                     error = str(exc)
+                    try:
+                        dataset = _load_dataset(request)
+                        preview_html = dataset.preview()
+                        class_chart_url = PlotBuilder.class_distribution(dataset)
+                    except ValueError:
+                        pass
 
     if dataset is None and SESSION_KEY in request.session:
         try:
             dataset = _load_dataset(request)
             preview_html = dataset.preview()
+            class_chart_url = PlotBuilder.class_distribution(dataset)
         except ValueError as exc:
             error = str(exc)
             request.session.pop(SESSION_KEY, None)
@@ -130,7 +180,10 @@ def index(request):
             "dataset": dataset,
             "preview_html": preview_html,
             "plot_url": plot_url,
+            "hist_url": hist_url,
+            "class_chart_url": class_chart_url,
             "train_result": train_result,
+            "train_plot_url": train_plot_url,
             "model_choices": model_choices,
             "metric_choices": metric_choices,
             "param_name": param_name,

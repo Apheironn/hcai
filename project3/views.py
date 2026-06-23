@@ -3,19 +3,45 @@ import uuid
 
 from django.conf import settings
 from django.http import FileResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from .forms import ActiveLearningForm
 from .services.active import ActiveLearner
 from .services.dataset import AgNewsDataset, CLASS_NAMES
+from .services.expert import highlight_keywords
+from .services.human_expert import HumanExpertSession
 from .services.plots import ResultPlots
 from .services.report import ReportBuilder
 from .services.store import ModelStore, SESSION_KEY
 
 
-def _build_context(request, dataset, store, error=None, training=False):
+def _workflow_status(data):
+    return {
+        "baseline": data.get("baseline_accuracy") is not None,
+        "expert": bool(data.get("expert_report")),
+        "defer": bool(data.get("defer_metrics")),
+        "active": data.get("active_final_accuracy") is not None,
+        "human": bool(data.get("human_report")),
+    }
+
+
+def _build_context(request, dataset, store, error=None):
     data = store.data
+    batch_indices = data.get("human_batch_indices", [])
+    human_done, human_total = HumanExpertSession.batch_progress(store)
+    batch_articles = []
+    for idx in batch_indices:
+        text = dataset.train_texts[idx]
+        batch_articles.append(
+            {
+                "index": idx,
+                "text_html": highlight_keywords(text),
+                "labeled": str(idx) in data.get("human_labels", {}),
+                "label": CLASS_NAMES[data["human_labels"][str(idx)]] if str(idx) in data.get("human_labels", {}) else None,
+            }
+        )
+
     return {
         "class_names": CLASS_NAMES,
         "n_train": dataset.n_train,
@@ -23,17 +49,25 @@ def _build_context(request, dataset, store, error=None, training=False):
         "preview_html": dataset.preview(),
         "class_chart_url": ResultPlots.class_distribution(dataset.class_counts()),
         "baseline_accuracy": data.get("baseline_accuracy"),
-        "training": training,
         "expert_report": data.get("expert_report"),
         "expert_chart_url": data.get("expert_chart_url"),
         "defer_metrics": data.get("defer_metrics"),
         "defer_chart_url": data.get("defer_chart_url"),
+        "defer_inspector_url": data.get("defer_inspector_url"),
+        "defer_inspector_rows": data.get("defer_inspector_rows"),
         "active_chart_url": data.get("active_chart_url"),
         "active_final_accuracy": data.get("active_final_accuracy"),
         "active_random_final_accuracy": data.get("active_random_final_accuracy"),
         "oracle_team_accuracy": data.get("defer_metrics", {}).get("team_accuracy") if data.get("defer_metrics") else None,
+        "human_report": data.get("human_report"),
+        "human_chart_url": data.get("human_chart_url"),
+        "batch_articles": batch_articles,
+        "human_done": human_done,
+        "human_total": human_total,
+        "workflow": _workflow_status(data),
         "active_form": ActiveLearningForm(),
         "report_url": reverse("project3:report"),
+        "report_ready": data.get("baseline_accuracy") is not None,
         "error": error,
     }
 
@@ -67,6 +101,10 @@ def index(request):
             elif action == "run_defer":
                 store.train_full_defer(dataset)
                 store.data["defer_chart_url"] = ResultPlots.defer_summary(store.data["defer_metrics"])
+                system = store.load_defer_system(dataset)
+                chart_url, rows = ResultPlots.defer_inspector(dataset, system)
+                store.data["defer_inspector_url"] = chart_url
+                store.data["defer_inspector_rows"] = rows
                 store.save(request)
 
             elif action == "run_active":
@@ -95,6 +133,31 @@ def index(request):
                 else:
                     error = "Invalid active learning parameters."
 
+            elif action == "load_human_batch":
+                HumanExpertSession.start_batch(dataset, store)
+                store.save(request)
+
+            elif action == "label_expert":
+                try:
+                    idx = int(request.POST.get("article_index"))
+                    class_name = request.POST.get("class_name")
+                    HumanExpertSession.record_label(store, idx, class_name)
+                    store.save(request)
+                except (TypeError, ValueError) as exc:
+                    error = str(exc)
+
+            elif action == "finish_human":
+                try:
+                    report = HumanExpertSession.build_report(dataset, store, store.expert)
+                    store.data["human_chart_url"] = ResultPlots.human_vs_simulated(report)
+                    store.save(request)
+                except ValueError as exc:
+                    error = str(exc)
+
+            elif action == "reset_session":
+                request.session.pop(SESSION_KEY, None)
+                return redirect("project3:index")
+
         context = _build_context(request, dataset, store, error=error)
     except Exception as exc:
         context = {
@@ -102,6 +165,9 @@ def index(request):
             "error": str(exc),
             "active_form": ActiveLearningForm(),
             "report_url": reverse("project3:report"),
+            "report_ready": False,
+            "workflow": {},
+            "batch_articles": [],
         }
 
     return render(request, "project3/index.html", context)
@@ -116,6 +182,9 @@ def download_report(request):
                 "error": "Open Project 3 and run experiments before downloading the report.",
                 "active_form": ActiveLearningForm(),
                 "report_url": reverse("project3:report"),
+                "report_ready": False,
+                "workflow": {},
+                "batch_articles": [],
             },
             status=400,
         )
@@ -126,7 +195,4 @@ def download_report(request):
     output_path = os.path.join(report_dir, f"project3_{uuid.uuid4().hex}.pdf")
     ReportBuilder.build(dataset, store.data, output_path)
 
-    pdf_file = open(output_path, "rb")
-    response = FileResponse(pdf_file, content_type="application/pdf")
-    response["Content-Disposition"] = 'attachment; filename="project3_report.pdf"'
-    return response
+    return FileResponse(open(output_path, "rb"), content_type="application/pdf", as_attachment=True, filename="project3_report.pdf")

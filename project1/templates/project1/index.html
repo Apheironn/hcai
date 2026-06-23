@@ -8,16 +8,29 @@
 
 {% block content %}
 <div class="box project1">
+    <nav class="top-nav">
+        <a href="{% url 'home:index' %}">← Home</a>
+        <span class="top-nav-title">Project 1</span>
+    </nav>
+
     <header class="page-header">
         <h1>Project 1 — Supervised Learning</h1>
         <p class="subtitle">Upload data, explore features, and compare models.</p>
+        {% if dataset %}
+        <span class="badge">{{ dataset.problem_type }}</span>
+        {% endif %}
     </header>
+
+    <nav class="step-nav">
+        <a href="#upload">1. Upload</a>
+        {% if dataset %}<a href="#explore">2. Explore</a><a href="#train">3. Train</a>{% endif %}
+    </nav>
 
     {% if error %}
     <p class="error">{{ error }}</p>
     {% endif %}
 
-    <section class="card">
+    <section class="card" id="upload">
         <h2>1. Upload dataset</h2>
         <form method="post" enctype="multipart/form-data" class="form-grid">
             {% csrf_token %}
@@ -27,6 +40,11 @@
                 {{ upload_form.file }}
             </div>
             <button type="submit">Upload</button>
+        </form>
+        <form method="post" class="form-grid" style="margin-top:12px">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="load_sample">
+            <button type="submit">Load sample Iris CSV</button>
         </form>
     </section>
 
@@ -39,11 +57,16 @@
             <div class="stat"><span>Problem</span><strong>{{ dataset.problem_type }}</strong></div>
         </div>
         <p class="feature-list"><strong>Features:</strong> {{ dataset.features|join:", " }}</p>
+        {% if class_chart_url %}
+        <div class="plot-frame">
+            <img src="{{ class_chart_url }}" alt="Class distribution" class="plot-image">
+        </div>
+        {% endif %}
         <h3>Preview</h3>
         <div class="table-wrap">{{ preview_html|safe }}</div>
     </section>
 
-    <section class="card">
+    <section class="card" id="explore">
         <h2>2. Visualize</h2>
         <form method="post" class="form-grid">
             {% csrf_token %}
@@ -69,18 +92,37 @@
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit">Generate plot</button>
+            <button type="submit">Generate scatter plot</button>
+        </form>
+        <form method="post" class="form-grid" style="margin-top:12px">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="histogram">
+            <input type="hidden" name="problem_type" value="{{ dataset.problem_type }}">
+            <div class="field">
+                <label>Feature histogram</label>
+                <select name="x_feature" required>
+                    {% for feature in dataset.features %}
+                    <option value="{{ feature }}">{{ feature }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit">Generate histogram</button>
         </form>
         {% if plot_url %}
         <div class="plot-frame">
             <img src="{{ plot_url }}" alt="Data plot" class="plot-image">
         </div>
         {% endif %}
+        {% if hist_url %}
+        <div class="plot-frame">
+            <img src="{{ hist_url }}" alt="Histogram" class="plot-image">
+        </div>
+        {% endif %}
     </section>
 
-    <section class="card">
+    <section class="card" id="train">
         <h2>3. Train model</h2>
-        <form method="post" class="form-grid" id="train-form">
+        <form method="post" class="form-grid" id="train-form" data-loading>
             {% csrf_token %}
             <input type="hidden" name="action" value="train">
             <div class="field">
@@ -92,7 +134,7 @@
                 </select>
             </div>
             <div class="field">
-                <label for="train-size">Train size (%)</label>
+                <label for="train-size">Training split (%)</label>
                 <input type="number" id="train-size" name="test_size" min="10" max="90" value="{{ train_form.test_size.value|default:80 }}" required>
             </div>
             <div class="field">
@@ -108,18 +150,21 @@
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit">Train</button>
+            <button type="submit" data-loading-text="Training…">Train</button>
         </form>
 
         {% if train_result %}
         <div class="results-panel" id="results-panel">
+            <div class="summary-grid">
+                <div class="stat highlight"><span>Best test {{ train_result.metric }}</span><strong>{{ train_result.best_test_score }}</strong></div>
+                <div class="stat"><span>Best param</span><strong>{{ train_result.best_param }}</strong></div>
+            </div>
+            <p class="insight-box">{{ train_result.insight }}</p>
             <p class="results-meta">
-                <strong>{{ train_result.model }}</strong> · metric: {{ train_result.metric }}
-                {% if train_result.lower_is_better %}(lower is better){% else %}(higher is better){% endif %}
-                · train {{ train_result.train_rows }} / test {{ train_result.test_rows }} rows
+                <strong>{{ train_result.model }}</strong> · train {{ train_result.train_rows }} / test {{ train_result.test_rows }} rows
             </p>
             {% if train_result.overfit_warning %}
-            <p class="warning">Large train–test gap detected — model may be overfitting on some settings.</p>
+            <p class="warning">Large train–test gap detected on some settings.</p>
             {% endif %}
             <div class="table-wrap">
                 <table class="results-table">
@@ -143,7 +188,16 @@
                     </tbody>
                 </table>
             </div>
-            <p class="hint">Gap = train − test (classification). High gap with strong train score suggests overfitting.</p>
+            {% if train_plot_url %}
+            <div class="plot-frame">
+                <img src="{{ train_plot_url }}" alt="Hyperparameter sweep" class="plot-image">
+            </div>
+            {% endif %}
+            {% if train_result.diagnostic_plot_url %}
+            <div class="plot-frame">
+                <img src="{{ train_result.diagnostic_plot_url }}" alt="Model diagnostic" class="plot-image">
+            </div>
+            {% endif %}
         </div>
         {% endif %}
     </section>

@@ -39,6 +39,11 @@ class ModelStore:
             "active_chart_url": None,
             "active_final_accuracy": None,
             "active_random_final_accuracy": None,
+            "human_labels": {},
+            "human_batch_indices": [],
+            "human_report": None,
+            "human_chart_url": None,
+            "defer_inspector_url": None,
         }
         request.session[SESSION_KEY] = data
         return cls(data, classifier)

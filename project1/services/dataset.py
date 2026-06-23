@@ -1,4 +1,5 @@
 import os
+import shutil
 import uuid
 
 import pandas as pd
@@ -56,6 +57,17 @@ class Dataset:
             for chunk in uploaded_file.chunks():
                 handle.write(chunk)
 
+        return cls.from_path(path, problem_type), path
+
+    @classmethod
+    def from_sample(cls, problem_type="auto"):
+        sample_path = os.path.join(
+            settings.BASE_DIR, "project1", "static", "project1", "sample_iris.csv"
+        )
+        upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        path = os.path.join(upload_dir, f"sample_iris_{uuid.uuid4().hex}.csv")
+        shutil.copy(sample_path, path)
         return cls.from_path(path, problem_type), path
 
     @staticmethod

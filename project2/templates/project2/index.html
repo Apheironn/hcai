@@ -8,17 +8,32 @@
 
 {% block content %}
 <div class="box project2">
+    <nav class="top-nav">
+        <a href="{% url 'home:index' %}">← Home</a>
+        <span class="top-nav-title">Project 2</span>
+    </nav>
+
     <header class="page-header">
         <h1>Project 2 — Explainability</h1>
         <p class="subtitle">Palmer Penguins interpretability, counterfactuals, and feature effects.</p>
     </header>
 
+    <nav class="step-nav">
+        <a href="#controls">Model</a>
+        <a href="#dataset">Dataset</a>
+        <a href="#counterfactuals">Counterfactuals</a>
+        <a href="#effects">Effects</a>
+    </nav>
+
     {% if error %}
-    <p class="error">{{ error }}</p>
+    <p class="error" id="ajax-error">{{ error }}</p>
+    {% else %}
+    <p class="error" id="ajax-error" style="display:none"></p>
     {% endif %}
 
-    <section class="card controls-card">
+    <section class="card controls-card" id="controls">
         <h2>Model controls</h2>
+        <p class="hint">Score = test accuracy − λ × Ω(f). Higher λ favors simpler models (Ω = leaves for trees, L1 coef sum for logreg).</p>
         <div class="controls-row">
             <div class="model-toggle">
                 <label><input type="radio" name="model_type_ui" value="tree" {% if model_type == "tree" %}checked{% endif %}> Tree</label>
@@ -27,6 +42,7 @@
             <div class="slider-field">
                 <label for="lambda-slider">λ = <span id="lambda-value">{{ lambda_value }}</span></label>
                 <input type="range" id="lambda-slider" min="0" max="0.05" step="0.001" value="{{ lambda_value }}">
+                <span class="hint" id="slider-status"></span>
             </div>
         </div>
         <div class="summary-grid">
@@ -37,7 +53,7 @@
         </div>
     </section>
 
-    <section class="card">
+    <section class="card" id="dataset">
         <h2>1. Dataset preview</h2>
         <div class="summary-grid">
             <div class="stat"><span>Rows</span><strong>{{ dataset.n_rows }}</strong></div>
@@ -56,6 +72,9 @@
         <div class="plot-frame plot-wide">
             <img src="{{ plot_url }}" alt="Model visualization" class="plot-image" id="model-plot">
         </div>
+        <div class="plot-frame plot-wide">
+            <img src="{{ pareto_url }}" alt="Accuracy complexity tradeoff" class="plot-image" id="pareto-plot">
+        </div>
         <div class="table-wrap">
             <table class="results-table" id="candidate-table">
                 <thead>
@@ -66,12 +85,12 @@
                         <th>Score</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="candidate-body">
                     {% for row in candidate_rows %}
                     <tr data-id="{{ row.id }}" class="{% if row.selected %}best-row{% endif %}">
-                        <td>{{ row.param_label }}={{ row.param_value }}</td>
-                        <td>{{ row.test_accuracy }}</td>
-                        <td>{{ row.complexity }}</td>
+                        <td class="param-cell">{{ row.param_label }}={{ row.param_value }}</td>
+                        <td class="acc-cell">{{ row.test_accuracy }}</td>
+                        <td class="omega-cell">{{ row.complexity }}</td>
                         <td class="score-cell">{{ row.score }}</td>
                     </tr>
                     {% endfor %}
@@ -80,9 +99,9 @@
         </div>
     </section>
 
-    <section class="card">
+    <section class="card" id="counterfactuals">
         <h2>3. Counterfactuals</h2>
-        <form method="post" class="form-grid linked-form">
+        <form method="post" class="form-grid linked-form" data-loading>
             {% csrf_token %}
             <input type="hidden" name="action" value="counterfactual">
             <input type="hidden" name="model_type" id="cf-model-type" value="{{ model_type }}">
@@ -103,10 +122,22 @@
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit">Generate</button>
+            <button type="submit" data-loading-text="Searching…">Generate</button>
         </form>
 
+        {% if cf_instance %}
+        <div class="instance-card">
+            <strong>Selected instance:</strong> true species <span class="badge">{{ cf_instance.label }}</span>
+            · model predicts <span class="badge badge-warn">{{ cf_instance.predicted }}</span>
+        </div>
+        {% endif %}
+
         {% if counterfactual_results %}
+        {% if cf_scatter_url %}
+        <div class="plot-frame plot-wide">
+            <img src="{{ cf_scatter_url }}" alt="Counterfactual scatter" class="plot-image">
+        </div>
+        {% endif %}
         {% for cf in counterfactual_results %}
         <div class="cf-block">
             <p class="results-meta">
@@ -139,9 +170,9 @@
         {% endif %}
     </section>
 
-    <section class="card">
+    <section class="card" id="effects">
         <h2>4. Feature effect plots</h2>
-        <form method="post" class="form-grid linked-form">
+        <form method="post" class="form-grid linked-form" data-loading>
             {% csrf_token %}
             <input type="hidden" name="action" value="effects">
             <input type="hidden" name="model_type" id="fx-model-type" value="{{ model_type }}">
@@ -154,13 +185,13 @@
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit">Generate</button>
+            <button type="submit" data-loading-text="Computing…">Generate</button>
         </form>
         {% if effect_plot_url %}
         <div class="plot-frame plot-wide">
             <img src="{{ effect_plot_url }}" alt="PDP and ALE plots" class="plot-image">
         </div>
-        <p class="hint">{{ effect_note }}</p>
+        <p class="hint">{{ effect_note }} — Three curves per plot, one per species.</p>
         {% endif %}
     </section>
 
@@ -181,12 +212,15 @@ let lambdaValue = {{ lambda_value }};
 
 const lambdaSlider = document.getElementById("lambda-slider");
 const lambdaLabel = document.getElementById("lambda-value");
+const sliderStatus = document.getElementById("slider-status");
+const ajaxError = document.getElementById("ajax-error");
 const statAcc = document.getElementById("stat-acc");
 const statOmega = document.getElementById("stat-omega");
 const statScore = document.getElementById("stat-score");
 const statParam = document.getElementById("stat-param");
 const modelPlot = document.getElementById("model-plot");
-const candidateTable = document.getElementById("candidate-table");
+const paretoPlot = document.getElementById("pareto-plot");
+const candidateBody = document.getElementById("candidate-body");
 const modelRadios = document.querySelectorAll('input[name="model_type_ui"]');
 
 function syncHiddenFields() {
@@ -200,50 +234,51 @@ function syncHiddenFields() {
     });
 }
 
-function updateTableScores() {
-    let bestId = null;
-    let bestScore = -Infinity;
+function rebuildTable() {
+    candidateBody.innerHTML = "";
     candidates.forEach((row) => {
-        row.score = +(row.test_accuracy - lambdaValue * row.complexity).toFixed(4);
-        if (row.score > bestScore) {
-            bestScore = row.score;
-            bestId = row.id;
-        }
-        row.selected = false;
-    });
-    candidates.forEach((row) => {
-        row.selected = row.id === bestId;
-    });
-
-    candidateTable.querySelectorAll("tbody tr").forEach((tr) => {
-        const id = Number(tr.dataset.id);
-        const row = candidates.find((item) => item.id === id);
-        if (!row) return;
-        tr.querySelector(".score-cell").textContent = row.score;
-        tr.classList.toggle("best-row", row.selected);
+        const tr = document.createElement("tr");
+        tr.dataset.id = row.id;
+        if (row.selected) tr.classList.add("best-row");
+        tr.innerHTML = `
+            <td class="param-cell">${row.param_label}=${row.param_value}</td>
+            <td class="acc-cell">${row.test_accuracy}</td>
+            <td class="omega-cell">${row.complexity}</td>
+            <td class="score-cell">${row.score}</td>`;
+        candidateBody.appendChild(tr);
     });
 }
 
 async function refreshSelection() {
     syncHiddenFields();
-    updateTableScores();
-    const response = await fetch(`${selectUrl}?model_type=${modelType}&lambda=${lambdaValue}`);
-    const data = await response.json();
-    if (!response.ok) return;
+    lambdaSlider.disabled = true;
+    sliderStatus.textContent = "Updating…";
+    ajaxError.style.display = "none";
 
-    statAcc.textContent = data.accuracy;
-    statOmega.textContent = data.complexity;
-    statScore.textContent = data.score;
-    statParam.textContent = data.param;
-    modelPlot.src = data.plot_url;
-    candidates = data.candidates;
-    candidateTable.querySelectorAll("tbody tr").forEach((tr) => {
-        const id = Number(tr.dataset.id);
-        const row = candidates.find((item) => item.id === id);
-        if (!row) return;
-        tr.querySelector(".score-cell").textContent = row.score;
-        tr.classList.toggle("best-row", row.selected);
-    });
+    try {
+        const response = await fetch(`${selectUrl}?model_type=${modelType}&lambda=${lambdaValue}`);
+        const data = await response.json();
+        if (!response.ok) {
+            ajaxError.textContent = data.error || "Could not update model selection.";
+            ajaxError.style.display = "block";
+            return;
+        }
+
+        statAcc.textContent = data.accuracy;
+        statOmega.textContent = data.complexity;
+        statScore.textContent = data.score;
+        statParam.textContent = data.param;
+        modelPlot.src = data.plot_url;
+        if (data.pareto_url) paretoPlot.src = data.pareto_url;
+        candidates = data.candidates;
+        rebuildTable();
+    } catch (err) {
+        ajaxError.textContent = "Network error while updating model.";
+        ajaxError.style.display = "block";
+    } finally {
+        lambdaSlider.disabled = false;
+        sliderStatus.textContent = "";
+    }
 }
 
 lambdaSlider.addEventListener("input", () => {

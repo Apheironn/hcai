@@ -160,6 +160,17 @@ class ModelTrainer:
         for row in results:
             row["best"] = row is best
 
+        best_kwargs = dict(cfg["kwargs"])
+        if param_name:
+            best_kwargs[param_name] = best["param"]
+        best_model = cfg["class"](**best_kwargs)
+        best_model.fit(x_train, y_train)
+        y_pred = best_model.predict(x_test)
+
+        insight = cls._build_insight(
+            model_name, best, metric, lower_is_better, dataset.problem_type
+        )
+
         return {
             "results": results,
             "param_name": param_name or "param",
@@ -169,7 +180,26 @@ class ModelTrainer:
             "train_rows": len(y_train),
             "test_rows": len(y_test),
             "overfit_warning": any(row["overfit"] for row in results),
+            "best_param": best["param"],
+            "best_test_score": best["test_score"],
+            "best_train_score": best["train_score"],
+            "y_test": y_test.tolist() if hasattr(y_test, "tolist") else list(y_test),
+            "y_pred": y_pred.tolist() if hasattr(y_pred, "tolist") else list(y_pred),
+            "label_classes": sorted(set(y_test.tolist() if hasattr(y_test, "tolist") else list(y_test))),
+            "insight": insight,
         }
+
+    @staticmethod
+    def _build_insight(model_name, best, metric, lower_is_better, problem_type):
+        param_text = f" at {best['param']}" if best["param"] != "default" else ""
+        direction = "lower is better" if lower_is_better else "higher is better"
+        msg = (
+            f"Best {model_name}{param_text}: test {metric}={best['test_score']} "
+            f"(train={best['train_score']}, {direction})."
+        )
+        if best.get("overfit"):
+            msg += " Large train–test gap suggests possible overfitting."
+        return msg
 
     @staticmethod
     def _parse_param_values(raw, param_name):

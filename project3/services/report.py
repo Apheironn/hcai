@@ -36,6 +36,11 @@ class ReportBuilder:
             if self.data.get("active_final_accuracy") is not None:
                 self._page(pdf, self._task4_lines())
                 self._plot_page(pdf, self.data.get("active_chart_url"), "Active learning curves")
+            if self.data.get("human_report"):
+                self._page(pdf, self._task5_lines())
+                self._plot_page(pdf, self.data.get("human_chart_url"), "Human vs simulated expert")
+            if self.data.get("defer_inspector_url"):
+                self._plot_page(pdf, self.data.get("defer_inspector_url"), "Defer decision inspector")
             self._page(pdf, self._design_lines())
 
     def _page(self, pdf, lines):
@@ -174,12 +179,37 @@ class ReportBuilder:
             lines.append(f"Task 3 oracle (full rejector): {oracle}")
         return lines
 
+    def _task5_lines(self):
+        report = self.data["human_report"]
+        lines = [
+            "## Task 5 — Human Expert Interaction",
+            "",
+            f"Articles labeled by user: {report['n_labeled']}",
+            f"Human accuracy on labeled subset: {report['human_accuracy']}",
+            f"Simulated expert on same subset: {report['expert_accuracy']}",
+            "",
+            "Per-class comparison on labeled articles:",
+        ]
+        for name, vals in report["per_class"].items():
+            if vals["human"] is None:
+                continue
+            lines.append(f"  • {name}: human={vals['human']}, simulated={vals['expert']}")
+        lines.append("")
+        lines.append(
+            "Interpretation: comparing your labels to the keyword expert shows where "
+            "human judgment differs from the simulated regional specialist."
+        )
+        return lines
+
     def _design_lines(self):
         return [
             "## Design Choices",
             "",
-            "• Baseline: simple linear text classifier for a strong, interpretable benchmark.",
+            "• Baseline: TF-IDF + logistic regression for a strong, interpretable text benchmark.",
             "• Expert: keyword-based regional specialist (strong on Sports/Business, weaker elsewhere).",
-            "• Deferral: rejector trained on when the expert outperforms the classifier.",
-            "• Active learning: query uncertain train points to learn deferral with fewer expert labels.",
+            "• Deferral: rejector trained on cases where the expert is correct and the classifier is wrong.",
+            "• Active learning: first half of budget uses entropy on classifier uncertainty; "
+            "second half queries points where the rejector is uncertain (near 0.5 defer probability).",
+            "• Random baseline uses the same query budget for fair comparison.",
+            "• Human expert UI collects real labels on train articles to compare against simulation.",
         ]

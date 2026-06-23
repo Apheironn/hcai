@@ -18,10 +18,56 @@ class Project3Tests(TestCase):
         mock_load.return_value = dataset
 
         store = MagicMock()
-        store.data = {"baseline_accuracy": 0.91}
+        store.data = {
+            "baseline_accuracy": 0.91,
+            "human_labels": {},
+            "human_batch_indices": [],
+        }
+        store.expert = MagicMock()
         mock_ensure.return_value = store
 
         response = self.client.get("/project3/")
+        self.assertEqual(response.status_code, 200)
+
+    @patch("project3.views.ResultPlots.human_vs_simulated", return_value="/media/plots/human.png")
+    @patch("project3.views.HumanExpertSession.build_report")
+    @patch("project3.views.ResultPlots.class_distribution", return_value="/media/plots/test.png")
+    @patch("project3.views.ModelStore.ensure")
+    @patch("project3.views.AgNewsDataset.load")
+    def test_label_expert(self, mock_load, mock_ensure, _mock_plot, mock_report, _mock_chart):
+        dataset = MagicMock()
+        dataset.n_train = 100
+        dataset.train_texts = ["news"] * 100
+        dataset.train_labels = [0] * 100
+        dataset.preview.return_value = "<table></table>"
+        dataset.class_counts.return_value = {"World": 1, "Sports": 1, "Business": 1, "Sci/Tech": 1}
+        mock_load.return_value = dataset
+
+        store = MagicMock()
+        store.data = {
+            "baseline_accuracy": 0.91,
+            "human_labels": {},
+            "human_batch_indices": [0],
+        }
+        store.expert = MagicMock()
+
+        def save_side_effect(request):
+            store.data.setdefault("human_labels", {})["0"] = 1
+
+        store.save.side_effect = save_side_effect
+        mock_ensure.return_value = store
+        mock_report.return_value = {
+            "n_labeled": 1,
+            "human_accuracy": 1.0,
+            "expert_accuracy": 0.5,
+            "per_class": {"World": {"human": 0.0, "expert": 0.0}, "Sports": {"human": None, "expert": None}, "Business": {"human": None, "expert": None}, "Sci/Tech": {"human": None, "expert": None}},
+        }
+
+        self.client.post(
+            "/project3/",
+            {"action": "label_expert", "article_index": 0, "class_name": "Sports"},
+        )
+        response = self.client.post("/project3/", {"action": "finish_human"})
         self.assertEqual(response.status_code, 200)
 
     @patch("project3.views.ReportBuilder.build")
@@ -38,7 +84,7 @@ class Project3Tests(TestCase):
 
         mock_build.side_effect = write_report
         session = self.client.session
-        session["project3_store"] = {"baseline_accuracy": 0.91, "classifier_path": "x", "baseline_accuracy": 0.91}
+        session["project3_store"] = {"baseline_accuracy": 0.91, "classifier_path": "x"}
         session.save()
 
         response = self.client.get("/project3/report/")
