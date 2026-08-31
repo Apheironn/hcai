@@ -65,6 +65,15 @@ media/plots/
 media/model_cache/
 media/reports/
 
+# Local dev scratch (curl cookie jars, saved page dumps)
+cj*.txt
+out*.html
+page.html
+results.html
+
+# Course handout PDFs, kept locally only
+projects/
+
 # Flask stuff:
 instance/
 .webassets-cache
@@ -134,6 +143,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv*/
 env/
 venv/
 ENV/
