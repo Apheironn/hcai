@@ -1,3 +1,7 @@
+.box.home-page {
+    width: min(1180px, 96%);
+}
+
 .home-page .page-header {
     text-align: center;
     margin-bottom: 24px;
@@ -5,8 +9,8 @@
 
 .home-layout {
     display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 24px;
+    grid-template-columns: 300px 1fr;
+    gap: 28px;
     align-items: start;
 }
 
