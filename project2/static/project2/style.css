@@ -5,6 +5,13 @@
     box-shadow: 0 4px 16px rgba(20, 50, 100, 0.08);
 }
 
+/* anchored jumps must clear the sticky controls card */
+#counterfactuals,
+#effects,
+#dataset {
+    scroll-margin-top: 96px;
+}
+
 .controls-row {
     display: grid;
     gap: 14px;

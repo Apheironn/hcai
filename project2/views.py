@@ -49,7 +49,7 @@ def _parse_controls(request):
 
     if model_type not in ("tree", "logreg"):
         model_type = DEFAULT_MODEL_TYPE
-    lambda_value = max(0.0, min(lambda_value, 0.05))
+    lambda_value = max(0.0, min(lambda_value, 0.01))
     return model_type, lambda_value
 
 

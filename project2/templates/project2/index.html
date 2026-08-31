@@ -41,7 +41,7 @@
             </div>
             <div class="slider-field">
                 <label for="lambda-slider">λ = <span id="lambda-value">{{ lambda_value }}</span></label>
-                <input type="range" id="lambda-slider" min="0" max="0.05" step="0.001" value="{{ lambda_value }}">
+                <input type="range" id="lambda-slider" min="0" max="0.01" step="0.0002" value="{{ lambda_value }}">
                 <span class="hint" id="slider-status"></span>
             </div>
         </div>
@@ -101,7 +101,7 @@
 
     <section class="card" id="counterfactuals">
         <h2>3. Counterfactuals</h2>
-        <form method="post" class="form-grid linked-form" data-loading>
+        <form method="post" action="{% url 'project2:index' %}#counterfactuals" class="form-grid linked-form" data-loading>
             {% csrf_token %}
             <input type="hidden" name="action" value="counterfactual">
             <input type="hidden" name="model_type" id="cf-model-type" value="{{ model_type }}">
@@ -179,7 +179,7 @@
 
     <section class="card" id="effects">
         <h2>4. Feature effect plots</h2>
-        <form method="post" class="form-grid linked-form" data-loading>
+        <form method="post" action="{% url 'project2:index' %}#effects" class="form-grid linked-form" data-loading>
             {% csrf_token %}
             <input type="hidden" name="action" value="effects">
             <input type="hidden" name="model_type" id="fx-model-type" value="{{ model_type }}">
@@ -293,10 +293,12 @@ async function refreshSelection() {
     }
 }
 
+let lambdaTimer = null;
 lambdaSlider.addEventListener("input", () => {
     lambdaValue = Number(lambdaSlider.value);
-    lambdaLabel.textContent = lambdaValue.toFixed(3);
-    refreshSelection();
+    lambdaLabel.textContent = lambdaValue.toFixed(4);
+    clearTimeout(lambdaTimer);
+    lambdaTimer = setTimeout(refreshSelection, 250);
 });
 
 modelRadios.forEach((radio) => {
