@@ -13,21 +13,37 @@
         <p class="subtitle">Human-Centric AI course demos — select a project to explore.</p>
     </header>
 
-    <section class="project-grid">
-        {% for project in projects %}
-        <a class="project-card" href="{% url project.url_name %}">
-            <span class="project-label">{{ project.name }}</span>
-            <span class="project-desc">{{ project.description }}</span>
-            <div class="feature-chips">
-                {% for chip in project.chips %}
-                <span class="chip">{{ chip }}</span>
+    <div class="home-layout">
+        <aside class="home-wiki">
+            <h2>About these projects</h2>
+            <p>
+                Four small Django apps built for the Human-Centric AI course. Each one is a
+                self-contained interface over a machine-learning task; open a card to try it.
+            </p>
+            <dl class="wiki-list">
+                {% for project in projects %}
+                <dt>{{ project.name }} — {{ project.title }}</dt>
+                <dd>{{ project.blurb }}</dd>
                 {% endfor %}
-            </div>
-        </a>
-        {% empty %}
-        <p class="empty-note">No projects available.</p>
-        {% endfor %}
-    </section>
+            </dl>
+        </aside>
+
+        <section class="project-grid">
+            {% for project in projects %}
+            <a class="project-card" href="{% url project.url_name %}">
+                <span class="project-label">{{ project.name }} — {{ project.title }}</span>
+                <span class="project-desc">{{ project.description }}</span>
+                <div class="feature-chips">
+                    {% for chip in project.chips %}
+                    <span class="chip">{{ chip }}</span>
+                    {% endfor %}
+                </div>
+            </a>
+            {% empty %}
+            <p class="empty-note">No projects available.</p>
+            {% endfor %}
+        </section>
+    </div>
 
     {% if students %}
     <section class="team-card">
