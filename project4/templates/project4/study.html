@@ -30,9 +30,9 @@
         {% else %}
         <h2>Design 2 — rank ten movies</h2>
         <p class="hint">
-            You will see {{ rank_size }} movies in a list, {{ rank_tasks }} times. Use the arrows to
-            move them until the list runs from the movie you would most like to watch to the one you
-            would least like to watch.
+            You will see {{ rank_size }} movies in a list, {{ rank_tasks }} times. Drag them (or use
+            the arrows) until the list runs from the movie you would most like to watch to the one
+            you would least like to watch.
         </p>
         {% endif %}
         <p class="hint">If you do not know the movies, you can skip a task.</p>
@@ -82,8 +82,8 @@
     <section class="card">
         <h2>Rank these {{ rank_size }} movies</h2>
         <p class="hint">
-            Move the movies with the arrows until the one you would most like to watch is at the top
-            and the one you would least like to watch is at the bottom.
+            Drag the movies, or use the arrows, until the one you would most like to watch is at the
+            top and the one you would least like to watch is at the bottom.
         </p>
         <form method="post" id="rank-form">
             {% csrf_token %}
@@ -91,7 +91,8 @@
             <input type="hidden" name="order" id="rank-order">
             <ol class="rank-board" id="rank-board">
                 {% for card in cards %}
-                <li class="rank-row" data-index="{{ card.index }}">
+                <li class="rank-row" data-index="{{ card.index }}" draggable="true">
+                    <span class="rank-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
                     <span class="rank-position"></span>
                     <div class="rank-info">{% include "project4/_movie_line.html" %}</div>
                     <div class="rank-controls">
@@ -158,6 +159,48 @@
         }
         sync();
         button.focus();
+    });
+
+    // Drag and drop reordering (arrows stay as a fallback / for touch).
+    let dragged = null;
+
+    function rowAfterPoint(y) {
+        const rows = [...board.querySelectorAll(".rank-row:not(.dragging)")];
+        let closest = null;
+        let closestOffset = Number.NEGATIVE_INFINITY;
+        for (const row of rows) {
+            const box = row.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closestOffset) {
+                closestOffset = offset;
+                closest = row;
+            }
+        }
+        return closest;
+    }
+
+    board.addEventListener("dragstart", (event) => {
+        dragged = event.target.closest(".rank-row");
+        if (!dragged) return;
+        dragged.classList.add("dragging");
+        event.dataTransfer.effectAllowed = "move";
+    });
+
+    board.addEventListener("dragover", (event) => {
+        if (!dragged) return;
+        event.preventDefault();
+        const after = rowAfterPoint(event.clientY);
+        if (after) {
+            board.insertBefore(dragged, after);
+        } else {
+            board.appendChild(dragged);
+        }
+    });
+
+    board.addEventListener("dragend", () => {
+        if (dragged) dragged.classList.remove("dragging");
+        dragged = null;
+        sync();
     });
 
     sync();

@@ -103,13 +103,30 @@
 
 .rank-row {
     display: grid;
-    grid-template-columns: 32px 1fr auto;
+    grid-template-columns: 16px 26px 1fr auto;
     align-items: center;
     gap: 10px;
     background: #fff;
     border: 1px solid #dde5f0;
     border-radius: 6px;
     padding: 8px 12px;
+}
+
+.rank-row.dragging {
+    opacity: 0.45;
+}
+
+.rank-handle {
+    cursor: grab;
+    color: #94a3b8;
+    font-size: 1rem;
+    line-height: 1;
+    user-select: none;
+    text-align: center;
+}
+
+.rank-row:active .rank-handle {
+    cursor: grabbing;
 }
 
 .rank-position {
