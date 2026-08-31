@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project4/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="box project4">
+    <nav class="top-nav">
+        <span class="top-nav-title">Participant {{ participant.code }}</span>
+        <span class="top-nav-title">Task {{ done }} / {{ total }}</span>
+    </nav>
+
+    <div class="progress"><div class="progress-fill" style="width: {{ percent }}%"></div></div>
+
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if step.kind == "intro" %}
+    <section class="card">
+        {% if step.design == "pairwise" %}
+        <h2>Design 1 — pairwise choice</h2>
+        <p class="hint">
+            You will see two movies at a time, {{ pair_tasks }} times. Each time, pick the one you
+            would rather watch tonight. There is no right answer — just follow your own taste.
+        </p>
+        {% else %}
+        <h2>Design 2 — rank ten movies</h2>
+        <p class="hint">
+            You will see {{ rank_size }} movies in a list, {{ rank_tasks }} times. Use the arrows to
+            move them until the list runs from the movie you would most like to watch to the one you
+            would least like to watch.
+        </p>
+        {% endif %}
+        <p class="hint">If you do not know the movies, you can skip a task.</p>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="continue">
+            <button type="submit">Start this block</button>
+        </form>
+    </section>
+
+    {% elif step.kind == "holdout_intro" %}
+    <section class="card">
+        <h2>Last part — validation</h2>
+        <p class="hint">
+            {{ holdout_pairs }} more pairwise choices on movies you have not seen yet. They are used
+            to check how well each interface predicted your taste.
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="continue">
+            <button type="submit">Continue</button>
+        </form>
+    </section>
+
+    {% elif step.kind == "pair" or step.kind == "holdout" %}
+    <section class="card">
+        <h2>Which one would you rather watch?</h2>
+        <div class="pair-grid">
+            {% for card in cards %}
+            <form method="post" class="pair-option">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="choose">
+                <input type="hidden" name="choice" value="{{ card.index }}">
+                <div class="movie-card">{% include "project4/_movie_card.html" %}</div>
+                <button type="submit">Choose this one</button>
+            </form>
+            {% endfor %}
+        </div>
+        <form method="post" class="skip-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="skip">
+            <button type="submit" class="button-muted">I don't know these movies</button>
+        </form>
+    </section>
+
+    {% elif step.kind == "rank" %}
+    <section class="card">
+        <h2>Rank these {{ rank_size }} movies</h2>
+        <p class="hint">
+            Move the movies with the arrows until the one you would most like to watch is at the top
+            and the one you would least like to watch is at the bottom.
+        </p>
+        <form method="post" id="rank-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="rank">
+            <input type="hidden" name="order" id="rank-order">
+            <ol class="rank-board" id="rank-board">
+                {% for card in cards %}
+                <li class="rank-row" data-index="{{ card.index }}">
+                    <span class="rank-position"></span>
+                    <div class="rank-info">{% include "project4/_movie_line.html" %}</div>
+                    <div class="rank-controls">
+                        <button type="button" class="rank-move" data-direction="up" title="Move up">▲</button>
+                        <button type="button" class="rank-move" data-direction="down" title="Move down">▼</button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ol>
+            <button type="submit">Submit ranking</button>
+        </form>
+        <form method="post" class="skip-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="skip">
+            <button type="submit" class="button-muted">I don't know these movies</button>
+        </form>
+    </section>
+
+    {% elif step.kind == "survey" %}
+    <section class="card">
+        <h2>How was this interface?</h2>
+        <p class="hint">Three statements about the block you just finished.</p>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="survey">
+            {% for field in survey_form %}
+            <fieldset class="likert">
+                <legend>{{ field.label }}</legend>
+                {{ field }}
+            </fieldset>
+            {% endfor %}
+            <button type="submit">Continue</button>
+        </form>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function () {
+    const board = document.getElementById("rank-board");
+    if (!board) return;
+    const orderField = document.getElementById("rank-order");
+
+    function sync() {
+        const rows = Array.from(board.children);
+        rows.forEach((row, position) => {
+            row.querySelector(".rank-position").textContent = position + 1;
+            row.querySelector('[data-direction="up"]').disabled = position === 0;
+            row.querySelector('[data-direction="down"]').disabled = position === rows.length - 1;
+        });
+        orderField.value = rows.map((row) => row.dataset.index).join(",");
+    }
+
+    board.addEventListener("click", (event) => {
+        const button = event.target.closest(".rank-move");
+        if (!button) return;
+        const row = button.closest(".rank-row");
+        if (button.dataset.direction === "up" && row.previousElementSibling) {
+            row.previousElementSibling.before(row);
+        } else if (button.dataset.direction === "down" && row.nextElementSibling) {
+            row.nextElementSibling.after(row);
+        }
+        sync();
+        button.focus();
+    });
+
+    sync();
+})();
+</script>
+{% endblock %}
