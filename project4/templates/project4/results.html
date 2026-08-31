@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project4/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="box project4">
+    <nav class="top-nav">
+        <a href="{% url 'project4:landing' %}">← Study page</a>
+        <span class="top-nav-title">Participant {{ participant.code }}</span>
+    </nav>
+
+    <header class="page-header">
+        <h1>Thank you for taking part</h1>
+        <p class="subtitle">
+            This is the debriefing page: what the model learned from each interface, and how well
+            each estimate predicted your {{ results.n_holdout }} validation choices.
+        </p>
+    </header>
+
+    <section class="card">
+        <h2>Comparison of the two designs</h2>
+        <table class="results-table">
+            <tr>
+                <th>Interface</th>
+                <th>Tasks</th>
+                <th>Implied comparisons</th>
+                <th>Time</th>
+                <th>Held-out accuracy</th>
+            </tr>
+            {% for design in designs %}
+            <tr>
+                <td>{{ design.label }}</td>
+                <td>{{ design.n_tasks }}</td>
+                <td>{{ design.n_implied_pairs }}</td>
+                <td>{{ design.seconds }} s ({{ design.seconds_per_task }} s / task)</td>
+                <td>
+                    {% if design.holdout_accuracy %}
+                    <span class="badge badge-success">{{ design.holdout_accuracy }}</span>
+                    {% else %}
+                    <span class="badge">n/a</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% if comparison_chart_url %}
+        <div class="plot-frame">
+            <img src="{{ comparison_chart_url }}" alt="Design comparison" class="plot-image">
+        </div>
+        {% endif %}
+        <div class="insight-box">
+            In the real study these two rows would be collected from about 40 participants and
+            compared with a paired test. A single session is far too noisy to conclude anything.
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Your estimated preference vector</h2>
+        <p class="hint">Positive weights mean you tend to prefer movies with that property.</p>
+        {% if weights_chart_url %}
+        <div class="plot-frame">
+            <img src="{{ weights_chart_url }}" alt="Estimated preference weights" class="plot-image">
+        </div>
+        {% endif %}
+        <div class="design-columns">
+            {% for design in designs %}
+            <div class="design-column">
+                <h3>{{ design.label }}</h3>
+                <table class="results-table">
+                    <tr><th>Feature</th><th>Weight</th></tr>
+                    {% for row in design.top_weights %}
+                    <tr><td>{{ row.name }}</td><td>{{ row.weight }}</td></tr>
+                    {% endfor %}
+                </table>
+                <h3>Top recommendations</h3>
+                <ul class="recommendation-list">
+                    {% for movie in design.recommendations %}
+                    <li><strong>{{ movie.title }}</strong> ({{ movie.year }}) — {{ movie.genres }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <footer class="page-footer">
+        <form action="{% url 'project4:landing' %}" method="get">
+            <button type="submit">Back to the study page</button>
+        </form>
+    </footer>
+</div>
+{% endblock %}

@@ -65,14 +65,14 @@ media/plots/
 media/model_cache/
 media/reports/
 
-# Local dev scratch (curl cookie jars, saved page dumps)
-cj*.txt
-out*.html
-page.html
-results.html
+# Local dev scratch (curl cookie jars, saved page dumps) — root only
+/cj*.txt
+/out*.html
+/page.html
+/results.html
 
 # Course handout PDFs, kept locally only
-projects/
+/projects/
 
 # Flask stuff:
 instance/
