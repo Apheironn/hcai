@@ -1,6 +1,6 @@
 .controls-card {
     position: sticky;
-    top: 0;
+    top: 8px;
     z-index: 2;
     box-shadow: 0 4px 16px rgba(20, 50, 100, 0.08);
 }
