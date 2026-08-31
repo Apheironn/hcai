@@ -14,9 +14,13 @@ from .services.plot_style import PlotStyle
 from .services.selector import ModelSelector
 from .services.tree_plot import TreePlotter
 
-SESSION_BANK = "project2_bank"
 DEFAULT_MODEL_TYPE = "tree"
 DEFAULT_LAMBDA = 0.0
+
+# The model bank is fully deterministic (fixed data, seed and grids), so it is
+# trained once per process and shared by every session instead of being
+# retrained and cached per session.
+_SHARED_BANK = None
 
 
 def _get_dataset():
@@ -24,13 +28,10 @@ def _get_dataset():
 
 
 def _ensure_bank(request, dataset):
-    if SESSION_BANK not in request.session:
-        if not request.session.session_key:
-            request.session.save()
-        cache_key = request.session.session_key
-        bank = ModelBank.train(dataset, cache_key)
-        request.session[SESSION_BANK] = bank.to_session()
-    return ModelBank.from_session(request.session[SESSION_BANK])
+    global _SHARED_BANK
+    if _SHARED_BANK is None:
+        _SHARED_BANK = ModelBank.train(dataset, "shared")
+    return _SHARED_BANK
 
 
 def _parse_controls(request):

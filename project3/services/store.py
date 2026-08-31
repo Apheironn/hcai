@@ -8,6 +8,31 @@ from .expert import TopicKeywordExpert
 
 SESSION_KEY = "project3_store"
 
+# The baseline classifier is deterministic and expensive to fit (TF-IDF + LR on
+# ~120k articles). Train it once per process and share it across every session,
+# reloading from disk if a previous process already wrote it. This keeps
+# "Reset session" and new visitors fast instead of retraining each time.
+_SHARED_DIR = os.path.join(settings.MEDIA_ROOT, "model_cache", "project3", "shared")
+_SHARED_CLF_PATH = os.path.join(_SHARED_DIR, "classifier.joblib")
+_SHARED_CLASSIFIER = None
+
+
+def _shared_classifier(dataset):
+    global _SHARED_CLASSIFIER
+    if _SHARED_CLASSIFIER is None:
+        if os.path.isfile(_SHARED_CLF_PATH):
+            import joblib
+            from sklearn.metrics import accuracy_score
+
+            pipeline = joblib.load(_SHARED_CLF_PATH)
+            acc = round(
+                float(accuracy_score(dataset.test_labels, pipeline.predict(dataset.test_texts))), 4
+            )
+            _SHARED_CLASSIFIER = BaselineClassifier(pipeline, acc)
+        else:
+            _SHARED_CLASSIFIER = BaselineClassifier.train(dataset, save_path=_SHARED_CLF_PATH)
+    return _SHARED_CLASSIFIER
+
 
 class ModelStore:
     def __init__(self, data, classifier, expert=None):
@@ -20,16 +45,10 @@ class ModelStore:
         if SESSION_KEY in request.session:
             return cls.from_session(request.session[SESSION_KEY])
 
-        if not request.session.session_key:
-            request.session.save()
-        cache_dir = os.path.join(
-            settings.MEDIA_ROOT, "model_cache", "project3", request.session.session_key
-        )
-        clf_path = os.path.join(cache_dir, "classifier.joblib")
-        classifier = BaselineClassifier.train(dataset, save_path=clf_path)
+        classifier = _shared_classifier(dataset)
 
         data = {
-            "classifier_path": clf_path,
+            "classifier_path": _SHARED_CLF_PATH,
             "baseline_accuracy": classifier.test_accuracy,
             "rejector_path": None,
             "defer_metrics": None,
@@ -50,8 +69,12 @@ class ModelStore:
 
     @classmethod
     def from_session(cls, data):
-        classifier = BaselineClassifier.load(data["classifier_path"], data["baseline_accuracy"])
-        return cls(data, classifier)
+        global _SHARED_CLASSIFIER
+        if _SHARED_CLASSIFIER is None:
+            _SHARED_CLASSIFIER = BaselineClassifier.load(
+                data["classifier_path"], data["baseline_accuracy"]
+            )
+        return cls(data, _SHARED_CLASSIFIER)
 
     def save(self, request):
         request.session[SESSION_KEY] = self.data
