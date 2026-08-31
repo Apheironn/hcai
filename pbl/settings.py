@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 
+# Plots are rendered inside request threads, where matplotlib GUI backends crash.
+os.environ.setdefault("MPLBACKEND", "Agg")
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -43,6 +46,7 @@ INSTALLED_APPS = [
     "project1",
     "project2",
     "project3",
+    "project4",
 ]
 
 MIDDLEWARE = [

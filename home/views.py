@@ -25,6 +25,12 @@ def index(request):
             "description": "Learning to defer and active expert querying.",
             "chips": ["Defer system", "Active learning", "Human expert"],
         },
+        {
+            "name": "Project 4",
+            "url_name": "project4:landing",
+            "description": "Preference elicitation user study on movie data.",
+            "chips": ["Bradley-Terry", "Plackett-Luce", "User study"],
+        },
     ]
 
     return render(
