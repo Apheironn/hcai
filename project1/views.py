@@ -8,6 +8,7 @@ from .services.plot import PlotBuilder
 from .services.trainer import ModelTrainer
 
 SESSION_KEY = "dataset"
+PLOTS_KEY = "project1_plots"
 
 
 def _load_dataset(request, problem_type="auto"):
@@ -45,6 +46,7 @@ def index(request):
                 try:
                     dataset, path = Dataset.from_upload(upload_form.cleaned_data["file"])
                     request.session[SESSION_KEY] = dataset.to_session(path)
+                    request.session.pop(PLOTS_KEY, None)
                     preview_html = dataset.preview()
                     class_chart_url = PlotBuilder.class_distribution(dataset)
                 except ValueError as exc:
@@ -56,6 +58,7 @@ def index(request):
             try:
                 dataset, path = Dataset.from_sample()
                 request.session[SESSION_KEY] = dataset.to_session(path)
+                request.session.pop(PLOTS_KEY, None)
                 preview_html = dataset.preview()
                 class_chart_url = PlotBuilder.class_distribution(dataset)
             except ValueError as exc:
@@ -73,6 +76,16 @@ def index(request):
                         plot_form.cleaned_data["x_feature"],
                         plot_form.cleaned_data["y_feature"] or None,
                     )
+                    state = request.session.get(PLOTS_KEY, {})
+                    state.update(
+                        {
+                            "scatter_url": plot_url,
+                            "scatter_x": plot_form.cleaned_data["x_feature"],
+                            "scatter_y": plot_form.cleaned_data["y_feature"] or "",
+                            "scatter_ptype": dataset.problem_type,
+                        }
+                    )
+                    request.session[PLOTS_KEY] = state
                     preview_html = dataset.preview()
                     class_chart_url = PlotBuilder.class_distribution(dataset)
                 except ValueError as exc:
@@ -84,6 +97,14 @@ def index(request):
                 try:
                     dataset = _load_dataset(request, plot_form.cleaned_data["problem_type"])
                     hist_url = PlotBuilder.histogram(dataset, plot_form.cleaned_data["x_feature"])
+                    state = request.session.get(PLOTS_KEY, {})
+                    state.update(
+                        {
+                            "hist_url": hist_url,
+                            "hist_feature": plot_form.cleaned_data["x_feature"],
+                        }
+                    )
+                    request.session[PLOTS_KEY] = state
                     preview_html = dataset.preview()
                     class_chart_url = PlotBuilder.class_distribution(dataset)
                 except ValueError as exc:
@@ -138,9 +159,18 @@ def index(request):
             error = str(exc)
             request.session.pop(SESSION_KEY, None)
 
+    plot_state = request.session.get(PLOTS_KEY, {}) if dataset else {}
+    plot_url = plot_url or plot_state.get("scatter_url")
+    hist_url = hist_url or plot_state.get("hist_url")
+    scatter_x = plot_state.get("scatter_x") or (dataset.features[0] if dataset else "")
+    scatter_y = plot_state.get("scatter_y") or ""
+    hist_feature = plot_state.get("hist_feature") or (dataset.features[0] if dataset else "")
+
     if dataset:
         if plot_form is None:
-            plot_form = PlotForm(initial={"problem_type": dataset.problem_type})
+            plot_form = PlotForm(
+                initial={"problem_type": plot_state.get("scatter_ptype") or dataset.problem_type}
+            )
 
         model_choices = list(ModelTrainer.models_for(dataset.problem_type).keys())
         metric_choices = ModelTrainer.metrics_for(dataset.problem_type)
@@ -181,6 +211,9 @@ def index(request):
             "preview_html": preview_html,
             "plot_url": plot_url,
             "hist_url": hist_url,
+            "scatter_x": scatter_x,
+            "scatter_y": scatter_y,
+            "hist_feature": hist_feature,
             "class_chart_url": class_chart_url,
             "train_result": train_result,
             "train_plot_url": train_plot_url,
