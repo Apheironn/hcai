@@ -21,11 +21,38 @@
             form.addEventListener("submit", () => {
                 const btn = form.querySelector('button[type="submit"]');
                 if (btn && !btn.disabled) {
+                    btn.dataset.idleText = btn.textContent;
                     btn.disabled = true;
                     btn.classList.add("is-loading");
                     if (btn.dataset.loadingText) btn.textContent = btn.dataset.loadingText;
                 }
             });
+        });
+        // Re-enable "loading" buttons when a page is restored from the bfcache
+        // (browser back/forward), so nothing looks permanently stuck.
+        window.addEventListener("pageshow", (event) => {
+            if (!event.persisted) return;
+            document.querySelectorAll("button.is-loading").forEach((btn) => {
+                btn.disabled = false;
+                btn.classList.remove("is-loading");
+                if (btn.dataset.idleText) btn.textContent = btn.dataset.idleText;
+            });
+        });
+        // A form that posts to "…#section" should leave the viewport at that
+        // section. Native fragment scrolling is unreliable once late-loading
+        // plot images shift the layout, so re-apply it after full load.
+        window.addEventListener("load", () => {
+            if (!location.hash || location.hash.length < 2) return;
+            let target;
+            try {
+                target = document.querySelector(location.hash);
+            } catch (err) {
+                return; /* not a valid selector */
+            }
+            if (!target) return;
+            target.scrollIntoView();
+            // re-apply once more after any late reflow (plot images resizing, etc.)
+            setTimeout(() => target.scrollIntoView(), 250);
         });
         </script>
     </body>

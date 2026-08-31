@@ -120,6 +120,11 @@ input[type="range"] {
   font-size: 1.15rem;
 }
 
+/* keep an anchored section clear of the viewport edge when jumped to */
+[id] {
+  scroll-margin-top: 16px;
+}
+
 button {
   background-color: var(--accent);
   color: #fff;
