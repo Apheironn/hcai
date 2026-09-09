@@ -14,11 +14,11 @@ class EffectPlots:
         grid = cls._grid(dataset, feature_idx)
         pdp = cls._pdp(model, dataset.x_train, feature_idx, grid)
         if model_type == "logreg":
-            ale = cls._ale_logreg(model, dataset.x_train, feature_idx, grid)
-            ale_note = "exact gradients (logreg)"
+            ale = cls._ale_logreg(model, dataset.x_train, feature_idx)
+            ale_note = "analytic gradient (logreg)"
         else:
             ale = cls._ale_tree(model, dataset.x_train, feature_idx)
-            ale_note = "quantile bins (tree)"
+            ale_note = "finite differences over quantile bins (tree)"
 
         fig, axes = plt.subplots(1, 2, figsize=(12, 4.8), dpi=PlotStyle.DPI)
         fig.patch.set_facecolor(PlotStyle.BG)
@@ -29,9 +29,7 @@ class EffectPlots:
         for class_idx, class_name in enumerate(dataset.class_names):
             color = PlotStyle.SPECIES_COLORS.get(class_name, PlotStyle.ACCENT)
             axes[0].plot(grid, pdp[:, class_idx], label=class_name, color=color, linewidth=2)
-            x_ale = grid if model_type == "logreg" else ale["grid"]
-            y_ale = ale["values"][:, class_idx]
-            axes[1].plot(x_ale, y_ale, label=class_name, color=color, linewidth=2)
+            axes[1].plot(ale["grid"], ale["values"][:, class_idx], label=class_name, color=color, linewidth=2)
 
         axes[0].set_title("PDP", fontsize=12, fontweight="600")
         axes[1].set_title(f"ALE ({ale_note})", fontsize=12, fontweight="600")
@@ -70,37 +68,35 @@ class EffectPlots:
         return np.array(curves)
 
     @classmethod
-    def _ale_logreg(cls, model, x_train, feature_idx, grid):
+    def _ale_logreg(cls, model, x_train, feature_idx):
+        """ALE from the analytic partial derivative of the softmax.
+
+        For p_k = softmax(W x + b) we have, in closed form,
+            d p_k / d x_j = p_k * (w_kj - sum_c p_c w_cj),
+        so no finite differences are needed: we just integrate this derivative
+        over quantile bins of the feature.
+        """
         values = x_train[:, feature_idx]
-        order = np.argsort(values)
-        sorted_vals = values[order]
-        sorted_x = x_train[order].copy()
+        bin_edges = np.unique(np.quantile(values, np.linspace(0, 1, cls.TREE_BINS + 1)))
+        n_classes = len(model.classes_)
 
-        n_bins = min(cls.TREE_BINS, len(sorted_vals) - 1)
-        bin_edges = np.quantile(sorted_vals, np.linspace(0, 1, n_bins + 1))
-        bin_edges = np.unique(bin_edges)
-        ale = np.zeros((len(bin_edges), len(model.classes_)))
+        coef = model.coef_
+        if coef.shape[0] == 1:  # binary sigmoid -> equivalent two-row softmax [0, w]
+            coef = np.vstack([np.zeros_like(coef), coef])
+        w_j = coef[:, feature_idx]                       # (n_classes,)
 
-        for class_idx in range(len(model.classes_)):
-            accumulated = 0.0
-            ale[0, class_idx] = 0.0
-            for i in range(1, len(bin_edges)):
-                lower, upper = bin_edges[i - 1], bin_edges[i]
-                mask = (sorted_vals >= lower) & (sorted_vals <= upper)
-                if not np.any(mask):
-                    ale[i, class_idx] = accumulated
-                    continue
-                local_x = sorted_x[mask].copy()
-                local_lower = local_x.copy()
-                local_upper = local_x.copy()
-                local_lower[:, feature_idx] = lower
-                local_upper[:, feature_idx] = upper
-                p_lower = cls._class_prob(model, local_lower, class_idx)
-                p_upper = cls._class_prob(model, local_upper, class_idx)
-                local_effect = np.mean(p_upper - p_lower)
-                accumulated += local_effect
-                ale[i, class_idx] = accumulated
+        proba = model.predict_proba(x_train)            # (n, n_classes)
+        mean_w = proba @ w_j                            # (n,) = sum_c p_c w_cj
+        grad = proba * (w_j[None, :] - mean_w[:, None])  # (n, n_classes) = d p / d x_j
 
+        ale = np.zeros((len(bin_edges), n_classes))
+        for i in range(1, len(bin_edges)):
+            lower, upper = bin_edges[i - 1], bin_edges[i]
+            mask = (values >= lower) & (values <= upper)
+            step = grad[mask].mean(axis=0) * (upper - lower) if np.any(mask) else 0.0
+            ale[i] = ale[i - 1] + step
+
+        ale -= ale.mean(axis=0)  # centre the accumulated effect
         return {"grid": bin_edges, "values": ale}
 
     @classmethod
@@ -131,6 +127,7 @@ class EffectPlots:
                 accumulated += np.mean(p_upper - p_lower)
                 ale[i, class_idx] = accumulated
 
+        ale -= ale.mean(axis=0)  # centre the accumulated effect
         return {"grid": bin_edges, "values": ale}
 
     @staticmethod

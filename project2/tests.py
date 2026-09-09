@@ -38,3 +38,20 @@ class Project2Tests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_effects_post_both_models(self):
+        """PDP/ALE must render for the tree and the logistic-regression path."""
+        self.client.get("/project2/")
+        for model_type in ("tree", "logreg"):
+            response = self.client.post(
+                "/project2/",
+                {
+                    "action": "effects",
+                    "model_type": model_type,
+                    "lambda_value": 0.0,
+                    "feature": "bill_length_mm",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "PDP and ALE plots")
+            self.assertNotContains(response, "same first dimension")
