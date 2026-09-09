@@ -1,20 +1,26 @@
 # HCAI Projects — Human-Centric Artificial Intelligence
 
-Django web app with four course projects: supervised learning, explainability, learning-to-defer with active learning, and a preference elicitation user study.
+Django web app with four course projects: supervised learning, explainability,
+learning-to-defer with active learning, and a preference elicitation user study.
 
 **Author:** Mertcan Catak (642815) — solo project
 
 ## Setup
 
+Requires Python 3.12.
+
 ```bash
 pip install -r requirements.txt
+python manage.py migrate
 python manage.py runserver
 ```
 
 Open http://127.0.0.1:8000/ (redirects to `/home/`).
 
-**Note:** Project 3 loads the AG News dataset from Hugging Face on first visit (internet required).
-Project 4 reads `project4/data/movie_metadata.csv` (IMDB 5000 Movie Dataset), which is included in the repository.
+**Note:** Project 3 loads the AG News dataset from Hugging Face on first visit
+(internet required); the baseline classifier is then trained once and cached.
+Project 4 reads `project4/data/movie_metadata.csv` (IMDB 5000 Movie Dataset),
+which is included in the repository.
 
 ## URLs
 
@@ -37,21 +43,15 @@ Project 4 reads `project4/data/movie_metadata.csv` (IMDB 5000 Movie Dataset), wh
 
 - No Django ORM for ML state — sessions + files under `media/`
 - Matplotlib plots saved to `media/plots/` and served as images
-- Project 3 classifier/rejector cached per session in `media/model_cache/project3/`
+- Project 2's model bank and Project 3's baseline classifier are deterministic,
+  so each is trained once per process and shared across sessions
+  (`media/model_cache/**/shared/`)
 - Human expert labels live in the session only (cleared when the session expires)
-- Project 4 study responses (movies shown, submitted order, timings) live in the session only; the study design PDF is cached in `media/reports/`
-
-## Revert to pre-upgrade state
-
-A snapshot commit and tag **`BEFORE`** marks the state before the quality upgrade:
-
-```bash
-git checkout BEFORE -- .
-# or hard reset: git reset --hard BEFORE
-```
+- Project 4 study responses (movies shown, submitted order, timings) live in the
+  session only; the study design PDF is cached in `media/reports/`
 
 ## Tests
 
 ```bash
-python manage.py test project1 project2 project3 project4
+python manage.py test
 ```
