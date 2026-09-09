@@ -1,7 +1,5 @@
-import os
 import tempfile
 
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 
 

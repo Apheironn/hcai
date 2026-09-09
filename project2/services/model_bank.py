@@ -1,5 +1,5 @@
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 import joblib
 import numpy as np
@@ -22,9 +22,6 @@ class ModelCandidate:
     test_accuracy: float
     complexity: float
     joblib_path: str
-
-    def to_dict(self):
-        return asdict(self)
 
 
 class ModelBank:
@@ -94,11 +91,3 @@ class ModelBank:
 
     def load_model(self, candidate):
         return joblib.load(candidate.joblib_path)
-
-    def to_session(self):
-        return [c.to_dict() for c in self.candidates]
-
-    @classmethod
-    def from_session(cls, session_data):
-        candidates = [ModelCandidate(**item) for item in session_data]
-        return cls(candidates)

@@ -1,7 +1,5 @@
 from collections import defaultdict
 
-import numpy as np
-
 from .dataset import CLASS_NAMES
 
 

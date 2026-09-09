@@ -121,8 +121,6 @@ class CounterfactualFinder:
 
     @classmethod
     def scatter_plot(cls, dataset, row_index, found, x_feat=None, y_feat=None):
-        from .dataset import NUMERIC_FEATURES
-
         x_feat = x_feat or NUMERIC_FEATURES[0]
         y_feat = y_feat or NUMERIC_FEATURES[1]
         raw, label = dataset.row_raw(row_index)

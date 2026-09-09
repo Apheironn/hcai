@@ -1,3 +1,5 @@
+import html
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -21,9 +23,6 @@ KEYWORD_MAP = {
 
 
 def highlight_keywords(text, max_len=280):
-    import html
-    import re
-
     snippet = text if len(text) <= max_len else text[: max_len - 3] + "..."
     escaped = html.escape(snippet)
     for css_class, words in KEYWORD_MAP.items():
